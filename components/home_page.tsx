@@ -92,7 +92,7 @@ export function Home_Page() {
             </Link>
           </Card>
           <Card className="group hover:bg-accent hover:text-accent-foreground">
-            <Link href="#" className="flex h-full w-full flex-col items-start justify-between p-6" prefetch={false}>
+            <Link href="registry" className="flex h-full w-full flex-col items-start justify-between p-6" prefetch={false}>
               <div>
                 <div className="mb-2 text-2xl font-bold">Registry</div>
                 <p className="text-muted-foreground">Manage your company's records, documents, and archives.</p>
