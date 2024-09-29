@@ -19,7 +19,8 @@ import {
   MoreHorizontal,
   Search,
   PlusCircle,
-  X
+  X,
+  ArrowBigRight
 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
@@ -38,8 +39,8 @@ export function AdministrativePage() {
     { id: 'records', label: 'Manage Records', icon: <FileText className="h-5 w-5" /> },
     { id: 'employees', label: 'Manage Employees', icon: <Users className="h-5 w-5" /> },
     { id: 'office', label: 'Manage Office', icon: <Building className="h-5 w-5" /> },
-    { id: 'other', label: 'Other Options', icon: <MoreHorizontal className="h-5 w-5" /> },
   ]
+
 
   const addNewRecord = (record) => {
     const newRecord = {
