@@ -70,6 +70,7 @@ export function DashboardLayoutComponent() {
             <DashboardCard 
               title="Administrative" 
               description="Manage your office operations, employee records, and more."
+            
               icon={<FileText className="h-6 w-6" />}
             />
             <DashboardCard 
@@ -104,7 +105,9 @@ function DashboardCard({ title, description, icon }) {
     <Card className="p-6 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">{title}</h2>
-        {icon}
+        <Link href="/registry" >
+             {icon}
+        </Link>
       </div>
       <p className="text-gray-600 mb-4">{description}</p>
       <Button variant="outline" className="w-full justify-between">
