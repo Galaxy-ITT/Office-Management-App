@@ -1,25 +1,98 @@
-## OfficeHub: Integrated Office Management Solution
+# CompanyHub: Comprehensive Office Management System
 
-**OfficeHub** is a comprehensive office management app designed to streamline operations, enhance communication, and manage resources within a workplace. This all-in-one platform, designed by the Galaxy-ITT Software Unit Department, offers a suite of tools to optimize the day-to-day activities of your office, making management effortless and more efficient.
+## Overview
 
-### Key Features:
-- **Task Management**: Assign tasks, set deadlines, and track progress in real-time to ensure projects are completed on time.
-- **Scheduling and Calendar**: Integrated calendar to manage appointments, meetings, and room bookings with reminders to keep everyone informed.
-- **Document Handling**: Secure cloud storage for managing, sharing, and collaborating on documents with version control.
-- **Communication Tools**: Built-in chat, email integration, and announcement boards to facilitate clear and continuous communication among team members.
-- **Resource Allocation**: Track and manage office resources like meeting rooms, equipment, and supplies.
-- **Reporting and Analytics**: Generate detailed reports on productivity, resource usage, and other metrics to help make informed decisions.
-- **Mobile and Desktop Compatibility**: Access the platform from anywhere through our mobile app or desktop client.
+CompanyHub is an all-in-one office management solution designed to streamline operations across various departments within an organization. Built with Next.js and React, it offers a user-friendly interface for managing administrative tasks, financial operations, human resources, and more. The application leverages modern web technologies and follows best practices in UI/UX design to deliver an efficient and intuitive user experience.
 
-### Benefits:
-- **Enhanced Productivity**: Simplify administrative tasks to focus more on strategic tasks.
-- **Improved Collaboration**: Foster a collaborative work environment with easy access to shared tools and documents.
-- **Centralized Information**: Keep all your office-related information in one secure, easily accessible place.
-- **Scalable**: Adapts to the size and needs of any office, growing as your business grows.
+## Core Modules
 
-### Ideal For:
-- Small to large enterprises looking to automate their office management.
-- Co-working spaces requiring efficient resource and member management.
-- Organizations seeking to reduce administrative overhead and enhance operational efficiency.
+### 1. Administrative Dashboard
 
-Enhance your office operations today with **OfficeHub**—where management meets innovation, crafted by the expertise of Galaxy-ITT's Software Unit Department!
+- Record management (documents, contracts, reports)
+- Office inventory and asset tracking
+- Meeting room bookings and calendar management
+- Visitor management system
+- Internal communication tools (announcements, memos)
+
+### 2. Finance Module
+
+- Expense tracking and approval workflows
+- Budget management and forecasting
+- Invoice generation and processing
+- Financial reporting (profit & loss, balance sheets, cash flow)
+- Payroll integration
+- Tax calculation and reporting
+
+### 3. Human Resources (HR) Module
+
+- Employee database management
+- Recruitment and onboarding processes
+- Performance evaluation and goal tracking
+- Leave management and attendance tracking
+- Training and development programs
+- Employee self-service portal
+
+### 4. Project Management
+
+- Project creation and tracking
+- Task assignment and deadline management
+- Gantt charts and project timelines
+- Resource allocation
+- Time tracking and billable hours
+- Project reporting and analytics
+
+### 5. Customer Relationship Management (CRM)
+
+- Customer database management
+- Lead tracking and conversion
+- Sales pipeline visualization
+- Customer support ticket system
+- Email marketing integration
+
+### 6. Inventory and Supply Chain Management
+
+- Stock level tracking
+- Purchase order management
+- Supplier database and performance tracking
+- Reorder point alerts
+- Inventory valuation reports
+
+### 7. Reporting and Analytics
+
+- Customizable dashboards for each department
+- Data visualization tools (charts, graphs, heat maps)
+- Export functionality for reports (PDF, Excel, CSV)
+- Key performance indicator (KPI) tracking
+- Trend analysis and forecasting
+
+## Key Features
+
+- Role-based access control
+- Multi-language support
+- Dark mode / Light mode toggle
+- Mobile-responsive design
+- Real-time notifications and alerts
+- Document management with version control
+- Integration capabilities with third-party tools (e.g., accounting software, CRM systems)
+- Audit logs for compliance and security
+
+## Technology Stack
+
+- Frontend: Next.js (App Router), React, TypeScript
+- Styling: Tailwind CSS, shadcn/ui components
+- State Management: React Context API or Redux (depending on complexity)
+- Backend: Node.js with Express.js
+- Database: PostgreSQL
+- ORM: Prisma
+- Authentication: NextAuth.js
+- File Storage: AWS S3 or similar cloud storage
+- Deployment: Vercel or similar platform
+
+## Running CompanyHub Locally
+
+Follow these steps to run CompanyHub on your local machine:
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/aliveevie/management_app

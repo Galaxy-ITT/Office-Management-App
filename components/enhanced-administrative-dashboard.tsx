@@ -357,21 +357,34 @@ export function EnhancedAdministrativeDashboard() {
 
 function ItemDetails({ item }: { item: Record | Employee | Office | null }) {
   if (!item) return null
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  }
+
+  const renderValue = (key: string, value: any) => {
+    if (key === 'file' && value instanceof File) {
+      return <a href={URL.createObjectURL(value)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View File</a>
+    }
+    if (typeof value === 'string' && (key.toLowerCase().includes('date') || key === 'startDate')) {
+      return formatDate(value)
+    }
+    return value?.toString() || 'N/A'
+  }
+
   return (
-    <>
+    <div className="grid gap-4">
       {Object.entries(item).map(([key, value]) => (
-        <div key={key} className="grid grid-cols-4 items-center gap-4">
-          <Label className="text-right font-bold">{key.charAt(0).toUpperCase() + key.slice(1)}:</Label>
-          <span className="col-span-3">
-            {key === 'file' && value instanceof File ? (
-              <a href={URL.createObjectURL(value)} target="_blank" rel="noopener noreferrer">View File</a>
-            ) : (
-              value
-            )}
-          </span>
+        <div key={key} className="grid grid-cols-3 items-center gap-4">
+          <Label className="text-right font-bold col-span-1">
+            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
+          </Label>
+          <span className="col-span-2">{renderValue(key, value)}</span>
         </div>
       ))}
-    </>
+    </div>
   )
 }
 
