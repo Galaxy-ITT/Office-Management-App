@@ -107,14 +107,36 @@ export async function adminsTable() {
     }
 }
 
-// Main function to handle the setup
-async function run() {
+export async function recordsTable() {
     try {
-      await superAdmin();  // Create super admin table and insert data
-      await adminsTable();  // Create lists_of_admins table and insert data
+        const client = await getClient();
+
+        const recordsTableExists = await tableExists(client, 'records');
+        if (recordsTableExists) {
+            console.log("records table already exists, skipping creation.");
+            return;
+        }
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS records (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(240) NOT NULL,
+                date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                status VARCHAR(50) NOT NULL,
+                source VARCHAR(100) NOT NULL,
+                description TEXT,
+                sender_name VARCHAR(240) NOT NULL,
+                receiver_name VARCHAR(240) NOT NULL,
+                sender_signature VARCHAR(240) NOT NULL,
+                receiver_signature VARCHAR(240) NOT NULL,
+                date_sent TIMESTAMP,
+                date_received TIMESTAMP,
+                organization_ref_number VARCHAR(100) NOT NULL,
+                admin_id INT REFERENCES lists_of_admins(admin_id) ON DELETE CASCADE,
+                file BYTEA
+            )
+        `).then(() => console.log("records table created successfully."));
     } catch (error) {
-      console.error("Error running the table creation and insertion scripts:", error);
+        console.error("Error creating records table:", error);
     }
-  }
-  
-export default run;
+}

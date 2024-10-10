@@ -2,6 +2,8 @@ import { Pool } from 'pg';
 // import run from './tables/tables';
 import { superAdmin } from './tables/tables';
 import { adminsTable } from './tables/tables';
+import { recordsTable } from './tables/tables';
+
 
 const config = {
   user: "avnadmin",
@@ -49,9 +51,6 @@ export async function getClient() {
   const result = await client.query("SELECT VERSION()");
   console.log(result.rows[0].version);
   console.log("Connection Successful!");
- // await run();
-  superAdmin();
-  adminsTable();
 
   return client;
 }
