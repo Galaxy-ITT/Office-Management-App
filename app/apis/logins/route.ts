@@ -26,13 +26,41 @@ export async function POST(req: Request) {
     const { username, password, rememberMe } = await req.json();
     console.log('Received login data:', username, password, rememberMe);
 
-    // Your logic to handle login goes here
-    // For example:
     const client = await getClient();
-    // Perform database operations
-    const result = await client.query('SELECT * FROM lists_of_admins')
-    console.log(result.rows[0])
-   // return NextResponse.json({ message: 'Login request received' }, { status: 200, headers });
+    
+    // Query the database for the user
+    const result = await client.query('SELECT * FROM lists_of_admins WHERE username = $1', [username]);
+    
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404, headers });
+    }
+
+    const user = result.rows[0];
+
+    console.log(user)
+    
+    // Compare the provided password with the stored hash
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (passwordMatch) {
+      // Password is correct, update remember_me field
+      await client.query('UPDATE lists_of_admins SET remember_me = $1 WHERE admin_id = $2', [true, user.admin_id]);
+
+      // Password is correct
+      return NextResponse.json({ 
+        message: 'Login successful', 
+        user: { 
+          id: user.admin_id, 
+          name: user.name, 
+          role: user.role,
+          rememberMe: true  // Always true after successful login
+        } 
+      }, { status: 200, headers });
+    } else {
+      // Password is incorrect
+      return NextResponse.json({ error: 'Invalid password' }, { status: 401, headers });
+    }
+
   } catch (error) {
     console.error('Error processing login:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500, headers });
