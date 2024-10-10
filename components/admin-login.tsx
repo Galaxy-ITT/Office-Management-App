@@ -20,19 +20,25 @@ export function AdminLoginComponent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
     if (!username || !password) {
       setError('Please enter both username and password.')
       return
     }
-
     try {
-      // Here you would typically make an API call to your backend for authentication
-      // For this example, we'll just simulate a successful login
-    //  console.log('Logging in with:', { username, password, rememberMe })
-      
-      // Simulate an API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch('/apis/logins', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password, rememberMe }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Login failed')
+      }
+
+      const data = await response.json()
+      console.log('Login successful:', data)
 
       // If login is successful, redirect to the dashboard
       router.push('/pages/dashboard')
@@ -40,6 +46,7 @@ export function AdminLoginComponent() {
       setError('Invalid username or password. Please try again.')
     }
   }
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

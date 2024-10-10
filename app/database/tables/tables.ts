@@ -26,7 +26,7 @@ export async function superAdmin() {
         const client = await getClient();
 
         // Check if the superAdmin table exists
-        const superAdminExists = await tableExists(client, 'superAdmin');
+        const superAdminExists = await tableExists(client, 'super_admin');
         if (superAdminExists) {
             console.log("superAdmin table already exists, skipping data insertion.");
             return;
@@ -34,24 +34,20 @@ export async function superAdmin() {
 
         // Create the superAdmin table
         await client.query(`
-            CREATE TABLE IF NOT EXISTS superAdmin (
+            CREATE TABLE IF NOT EXISTS super_admin (
                 username VARCHAR(240) NOT NULL,
                 password VARCHAR(240) NOT NULL
             )
-        `);
-
-        console.log("superAdmin table created successfully.");
+        `).then(() => console.log("superAdmin table created successfully."));
 
         // Generate a hashed password for the super admin
         const hashedPassword = await generatePassword('admin');
 
         // Insert the super admin into the table
         await client.query(`
-            INSERT INTO superAdmin (username, password)
+            INSERT INTO super_admin (username, password)
             VALUES ('galaxy', $1)
-        `, [hashedPassword]);
-
-        console.log("Super Admin inserted successfully.");
+        `, [hashedPassword]).then(() => console.log("Super Admin inserted successfully."));
     } catch (error) {
         console.error("Error creating superAdmin table or inserting data:", error);
     }
@@ -107,6 +103,7 @@ export async function adminsTable() {
     }
 }
 
+
 export async function recordsTable() {
     try {
         const client = await getClient();
@@ -140,3 +137,52 @@ export async function recordsTable() {
         console.error("Error creating records table:", error);
     }
 }
+
+export async function AddColumns() {
+    try {
+        const client = await getClient();
+
+        // Check if the columns already exist
+        const columnsExist = await checkColumnsExist(client, 'lists_of_admins', ['username', 'remember_me']);
+
+        if (columnsExist) {
+            console.log("Columns 'username' and 'remember_me' already exist in lists_of_admins table.");
+            return;
+        }
+
+        // Add the new columns
+        await client.query(`
+            ALTER TABLE lists_of_admins
+            ADD COLUMN IF NOT EXISTS username VARCHAR(240) UNIQUE,
+            ADD COLUMN IF NOT EXISTS remember_me BOOLEAN DEFAULT TRUE
+        `);
+
+        console.log("Columns 'username' and 'remember_me' added successfully to lists_of_admins table.");
+            
+        // Update existing rows to set username (if needed)
+        await client.query(`
+            UPDATE lists_of_admins
+            SET username = name
+            WHERE username IS NULL
+        `);
+
+        console.log("Existing rows updated with username values.");
+
+    } catch (error) {
+        console.error("Error adding columns to lists_of_admins table:", error);
+    }
+}
+
+async function checkColumnsExist(client: Pool, tableName: string, columnNames: string[]): Promise<boolean> {
+    const query = `
+        SELECT COUNT(*) as column_count
+        FROM information_schema.columns
+        WHERE table_name = $1
+        AND column_name = ANY($2::text[])
+    `;
+
+    const result = await client.query(query, [tableName, columnNames]);
+    return result.rows[0].column_count === columnNames.length;
+}
+
+
