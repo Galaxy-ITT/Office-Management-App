@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { superAdmin } from './tables/tables';
 import { adminsTable } from './tables/tables';
 import { recordsTable } from './tables/tables';
-
+import { AddColumns } from './tables/tables';
 
 const config = {
   user: "avnadmin",
@@ -54,6 +54,8 @@ export async function getClient() {
   superAdmin();
   adminsTable();
   recordsTable();
+  AddColumns();
+
 
   return client;
 }

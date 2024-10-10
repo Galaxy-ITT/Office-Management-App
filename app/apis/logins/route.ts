@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getClient } from '@/app/database';
+import bcrypt from 'bcrypt';
 
 export async function POST(req: Request) {
   // Handle preflight request
@@ -22,16 +23,16 @@ export async function POST(req: Request) {
 
   try {
     // Parse the JSON body of the request
-    const body = await req.json();
-    console.log('Received login data:', body);
+    const { username, password, rememberMe } = await req.json();
+    console.log('Received login data:', username, password, rememberMe);
 
     // Your logic to handle login goes here
     // For example:
-    // const client = await getClient();
+    const client = await getClient();
     // Perform database operations
-
-    // For now, we'll just return a success message
-    return NextResponse.json({ message: 'Login request received' }, { status: 200, headers });
+    const result = await client.query('SELECT * FROM lists_of_admins')
+    console.log(result.rows[0])
+   // return NextResponse.json({ message: 'Login request received' }, { status: 200, headers });
   } catch (error) {
     console.error('Error processing login:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500, headers });
