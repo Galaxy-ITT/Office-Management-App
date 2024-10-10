@@ -21,7 +21,7 @@ async function tableExists(client: Pool, tableName: string) {
 }
 
 // Function to handle the superAdmin table creation and insertion
-async function superAdmin() {
+export async function superAdmin() {
     try {
         const client = await getClient();
 
@@ -58,7 +58,7 @@ async function superAdmin() {
 }
 
 // Function to handle the admins table creation and insertion
-async function adminsTable() {
+export async function adminsTable() {
     try {
         const client = await getClient();
 
@@ -117,4 +117,4 @@ async function run() {
     }
   }
   
-  export default run;
+export default run;
