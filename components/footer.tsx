@@ -78,15 +78,15 @@ export function FooterComponent() {
           <div className="space-y-2 mb-4 md:mb-0">
             <div className="flex items-center">
               <Mail className="h-5 w-5 mr-2" />
-              <span>contact@officehub.com</span>
+              <span>iabdulkarim@galaxyitt.com.ng</span>
             </div>
             <div className="flex items-center">
               <Phone className="h-5 w-5 mr-2" />
-              <span>+1 (555) 123-4567</span>
+              <span>2348138300357</span>
             </div>
             <div className="flex items-center">
               <MapPin className="h-5 w-5 mr-2" />
-              <span>123 Office Street, Business City, 12345</span>
+              <span>Sani Abacha Way, Dutse, Jigawa State</span>
             </div>
           </div>
           <div className="text-sm">
