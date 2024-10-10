@@ -51,6 +51,9 @@ export async function getClient() {
   const result = await client.query("SELECT VERSION()");
   console.log(result.rows[0].version);
   console.log("Connection Successful!");
+  superAdmin();
+  adminsTable();
+  recordsTable();
 
   return client;
 }

@@ -7,13 +7,14 @@ export async function GET(request: Request) {
     // Your logic to fetch admins goes here
     // For example:
     const client = await getClient();
+
+    const result = await client.query('SELECT * FROM lists_of_admins')
+    console.log(result.rows);
+
     const admins = [
       { id: 1, name: 'Admin 1' },
       { id: 2, name: 'Admin 2' },
     ];
-
-   
-
 
     return NextResponse.json(admins);
   } catch (error) {
