@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PlusCircle, Search, FileText, Users, Building2, LogOut, Edit, Save, X, Upload, Forward } from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
 
 type Record = {
   id: string
@@ -108,32 +109,78 @@ export function EnhancedAdministrativeDashboard() {
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editedItem) {
+      let endpoint = '';
       if (activeSection === 'records') {
-        if (isAddingNew) {
-          setRecords([...records, editedItem as Record])
-        } else {
-          setRecords(records.map(r => r.id === editedItem.id ? editedItem as Record : r))
-        }
+        endpoint = '/apis/records';
       } else if (activeSection === 'employees') {
-        if (isAddingNew) {
-          setEmployees([...employees, editedItem as Employee])
-        } else {
-          setEmployees(employees.map(e => e.id === editedItem.id ? editedItem as Employee : e))
-        }
+        endpoint = '/apis/employees';
       } else if (activeSection === 'office') {
-        if (isAddingNew) {
-          setOffices([...offices, editedItem as Office])
-        } else {
-          setOffices(offices.map(o => o.id === editedItem.id ? editedItem as Office : o))
-        }
+        endpoint = '/apis/offices';
       }
-      setSelectedItem(editedItem)
-      setIsEditing(false)
-      setIsAddingNew(false)
+
+      const formData = new FormData();
+
+      // Append all fields to formData
+      Object.entries(editedItem).forEach(([key, value]) => {
+        if (value instanceof File) {
+          formData.append(key, value, value.name);
+        } else if (value !== null && value !== undefined) {
+          formData.append(key, value.toString());
+        }
+      });
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save item');
+        }
+
+        const savedItem = await response.json();
+
+        if (activeSection === 'records') {
+          if (isAddingNew) {
+            setRecords([...records, savedItem]);
+          } else {
+            setRecords(records.map(r => r.id === savedItem.id ? savedItem : r));
+          }
+        } else if (activeSection === 'employees') {
+          if (isAddingNew) {
+            setEmployees([...employees, savedItem]);
+          } else {
+            setEmployees(employees.map(e => e.id === savedItem.id ? savedItem : e));
+          }
+        } else if (activeSection === 'office') {
+          if (isAddingNew) {
+            setOffices([...offices, savedItem]);
+          } else {
+            setOffices(offices.map(o => o.id === savedItem.id ? savedItem : o));
+          }
+        }
+
+        setSelectedItem(savedItem);
+        setIsEditing(false);
+        setIsAddingNew(false);
+        toast({
+          title: "Success",
+          description: `${activeSection.slice(0, -1)} saved successfully.`,
+        });
+      } catch (error) {
+        console.error('Error saving item:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save item. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
-  }
+  };
+
 
   const handleCancel = () => {
     setIsEditing(false)
