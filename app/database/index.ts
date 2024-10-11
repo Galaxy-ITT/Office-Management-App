@@ -2,8 +2,8 @@ import { Pool } from 'pg';
 // import run from './tables/tables';
 import { superAdmin } from './tables/tables';
 import { adminsTable } from './tables/tables';
-import { recordsTable } from './tables/tables';
 import { AddColumns } from './tables/tables';
+import { refreshRecordsTable } from './tables/tables';
 
 const config = {
   user: "avnadmin",
@@ -54,7 +54,7 @@ export async function getClient() {
  //uncomment all of these to create the tables! 
  // superAdmin();
 //  adminsTable();
-//  recordsTable();
+  refreshRecordsTable();
 //  AddColumns();
 
 
