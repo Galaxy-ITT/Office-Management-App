@@ -8,20 +8,39 @@ export async function POST(req: Request) {
   });
 
   try {
-    const body = await req.json();
-    console.log('Received new record:', body);
+    const formData = await req.formData();
+    console.log('Received new record:', formData);
 
     const client = await getClient();
     
-    // Insert the new record into the database
-    // Uncomment and adjust this query based on your database schema
-    const result = await client.query('SELECT * FROM records');
-    //console.log(result)
+    // Extract file data
+    const file = formData.get('file') as File;
+    let fileBuffer = null;
+    if (file) {
+      const arrayBuffer = await file.arrayBuffer();
+      fileBuffer = Buffer.from(arrayBuffer);
+    }
 
-    // For now, we'll just echo back the received data
-    const newRecord = body;
-   // console.log('Processed new record:', newRecord);
-    return NextResponse.json(newRecord, { status: 201, headers });
+    // Insert the new record into the database
+    const result = await client.query(
+      `INSERT INTO records (name, status, source, sender_name, date_sent, date_received, organization_ref_number, file)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        formData.get('name'),
+        formData.get('status'),
+        formData.get('source'),
+        formData.get('senderName'),
+        formData.get('dateSent'),
+        formData.get('dateReceived'),
+        formData.get('organizationRefNumber'),
+        fileBuffer
+      ]
+    );
+
+    const newRecord = result.rows[0];
+    console.log('Saved new record:', newRecord);
+    return NextResponse.json({ message: 'Record saved successfully', record: newRecord }, { status: 201, headers });
   } catch (error) {
     console.error('Error processing new record:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500, headers });

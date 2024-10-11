@@ -102,7 +102,6 @@ export function EnhancedAdministrativeDashboard() {
       setEditedItem({ id: '', name: '', location: '', capacity: 0, manager: '' })
     }
   }
-
   const handleSave = async () => {
     if (editedItem) {
       let endpoint = '';
@@ -114,34 +113,59 @@ export function EnhancedAdministrativeDashboard() {
         endpoint = '/apis/offices';
       }
   
-      // Convert editedItem to a plain object
-      const itemData = Object.fromEntries(
-        Object.entries(editedItem).map(([key, value]) => {
-          if (value instanceof File) {
-            // For simplicity, we're just sending the file name
-            // In a real application, you'd handle file uploads differently
-            return [key, value.name];
-          }
-          return [key, value];
-        })
-      );
+      const formData = new FormData();
+  
+      // Append all fields to formData
+      Object.entries(editedItem).forEach(([key, value]) => {
+        if (value instanceof File) {
+          formData.append(key, value);
+        } else if (value !== null && value !== undefined) {
+          formData.append(key, value.toString());
+        }
+      });
   
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(itemData),
+          body: formData,
         });
   
         if (!response.ok) {
           throw new Error('Failed to save item');
         }
   
-        const savedItem = await response.json();
+        const result = await response.json();
   
-        // ... rest of the function remains the same
+        if (activeSection === 'records') {
+          if (isAddingNew) {
+            setRecords([...records, result.record]);
+          } else {
+            setRecords(records.map(r => r.id === result.record.id ? result.record : r));
+          }
+        } else if (activeSection === 'employees') {
+          if (isAddingNew) {
+            setEmployees([...employees, result.record]);
+          } else {
+            setEmployees(employees.map(e => e.id === result.record.id ? result.record : e));
+          }
+        } else if (activeSection === 'office') {
+          if (isAddingNew) {
+            setOffices([...offices, result.record]);
+          } else {
+            setOffices(offices.map(o => o.id === result.record.id ? result.record : o));
+          }
+        }
+  
+        setSelectedItem(result.record);
+        setIsEditing(false);
+        setIsAddingNew(false);
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+  
+        // Hide the dialog
+        setSelectedItem(null);
       } catch (error) {
         console.error('Error saving item:', error);
         toast({

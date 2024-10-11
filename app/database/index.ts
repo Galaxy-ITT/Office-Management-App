@@ -54,7 +54,7 @@ export async function getClient() {
  //uncomment all of these to create the tables! 
  // superAdmin();
 //  adminsTable();
-  refreshRecordsTable();
+//  refreshRecordsTable();
 //  AddColumns();
 
 
