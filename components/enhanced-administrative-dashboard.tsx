@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PlusCircle, Search, FileText, Users, Building2, LogOut, Edit, Save, X, Upload, Forward } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
+import { toast } from "@/hooks/use-toast";
 
 type Record = {
   id: string
@@ -19,11 +19,8 @@ type Record = {
   dateCreated: string
   status: string
   source: string
-  description?: string
+  description: string
   senderName: string
-  receiverName: string
-  senderSignature: string
-  receiverSignature: string
   dateSent: string
   dateReceived: string
   organizationRefNumber: string
@@ -51,8 +48,8 @@ export function EnhancedAdministrativeDashboard() {
   const router = useRouter()
   const [activeSection, setActiveSection] = useState('records')
   const [records, setRecords] = useState<Record[]>([
-    { id: '001', name: 'Annual Report 2023', dateCreated: '2023-05-15', status: 'Active', source: 'Government Office', description: 'Comprehensive annual report for the year 2023', senderName: 'John Doe', receiverName: 'Jane Smith', senderSignature: 'JD', receiverSignature: 'JS', dateSent: '2023-05-10', dateReceived: '2023-05-15', organizationRefNumber: 'GOV-2023-001' },
-    { id: '002', name: 'Q2 Financial Statement', dateCreated: '2023-07-01', status: 'Pending', source: 'Private Office', description: 'Financial statement for the second quarter', senderName: 'Alice Johnson', receiverName: 'Bob Williams', senderSignature: 'AJ', receiverSignature: 'BW', dateSent: '2023-06-30', dateReceived: '2023-07-01', organizationRefNumber: 'FIN-2023-Q2' },
+    { id: '001', name: 'Annual Report 2023', dateCreated: '2023-05-15', status: 'Active', source: 'Government Office', description: 'Comprehensive annual report for the year 2023', senderName: 'John Doe', dateSent: '2023-05-10', dateReceived: '2023-05-15', organizationRefNumber: 'GOV-2023-001' },
+    { id: '002', name: 'Q2 Financial Statement', dateCreated: '2023-07-01', status: 'Pending', source: 'Private Office', description: 'Financial statement for the second quarter', senderName: 'Alice Johnson', dateSent: '2023-06-30', dateReceived: '2023-07-01', organizationRefNumber: 'FIN-2023-Q2' },
   ])
   const [employees, setEmployees] = useState<Employee[]>([
     { id: 'E001', name: 'John Doe', department: 'IT', position: 'Software Engineer', startDate: '2022-03-15', email: 'john.doe@example.com' },
@@ -95,9 +92,6 @@ export function EnhancedAdministrativeDashboard() {
         source: '', 
         description: '',
         senderName: '',
-        receiverName: '',
-        senderSignature: '',
-        receiverSignature: '',
         dateSent: '',
         dateReceived: '',
         organizationRefNumber: ''
@@ -174,12 +168,10 @@ export function EnhancedAdministrativeDashboard() {
   }
 
   const handleForwardSubmit = () => {
-    // Simulating forwarding functionality
     console.log(`Forwarding to: ${forwardTo}`)
     if (forwardCc) {
       console.log('CC-ing to email')
     }
-    // Here you would typically make an API call to handle the forwarding
     setIsForwarding(false)
   }
 
@@ -315,7 +307,7 @@ export function EnhancedAdministrativeDashboard() {
               ) : activeSection === 'employees' ? (
                 <EditEmployeeForm employee={editedItem as Employee} setEditedItem={setEditedItem} />
               ) : (
-                <EditOfficeForm office={editedItem as Office} setEditedItem={setEditedItem} />
+                <EditOfficeForm office={editedItem as Office}   setEditedItem={setEditedItem} />
               )
             ) : (
               <ItemDetails item={selectedItem} />
@@ -395,6 +387,10 @@ function ItemDetails({ item }: { item: Record | Employee | Office | null }) {
     if (typeof value === 'string' && (key.toLowerCase().includes('date') || key === 'startDate')) {
       return formatDate(value)
     }
+    // Exclude removed fields
+    if (['receiverName', 'senderSignature', 'receiverSignature'].includes(key)) {
+      return null;
+    }
     return value?.toString() || 'N/A'
   }
 
@@ -422,8 +418,12 @@ function EditRecordForm({ record, setEditedItem }: { record: Record, setEditedIt
   return (
     <>
       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="name" className="text-right">Name</Label>
+        <Label htmlFor="name" className="text-right">File Name</Label>
         <Input id="name" value={record.name} onChange={(e) => setEditedItem({ ...record, name: e.target.value })} className="col-span-3" />
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="organizationRefNumber" className="text-right">Org. Ref. Number</Label>
+        <Input id="organizationRefNumber" value={record.organizationRefNumber} onChange={(e) => setEditedItem({ ...record, organizationRefNumber: e.target.value })} className="col-span-3" />
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="dateCreated" className="text-right">Date Created</Label>
@@ -447,24 +447,8 @@ function EditRecordForm({ record, setEditedItem }: { record: Record, setEditedIt
         <Input id="source" value={record.source} onChange={(e) => setEditedItem({ ...record, source: e.target.value })} className="col-span-3" />
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="description" className="text-right">Description</Label>
-        <Input id="description" value={record.description} onChange={(e) => setEditedItem({ ...record, description: e.target.value })} className="col-span-3" />
-      </div>
-      <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="senderName" className="text-right">Sender Name</Label>
         <Input id="senderName" value={record.senderName} onChange={(e) => setEditedItem({ ...record, senderName: e.target.value })} className="col-span-3" />
-      </div>
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="receiverName" className="text-right">Receiver Name</Label>
-        <Input id="receiverName" value={record.receiverName} onChange={(e) => setEditedItem({ ...record, receiverName: e.target.value })} className="col-span-3" />
-      </div>
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="senderSignature" className="text-right">Sender Signature</Label>
-        <Input id="senderSignature" value={record.senderSignature} onChange={(e) => setEditedItem({ ...record, senderSignature: e.target.value })} className="col-span-3" />
-      </div>
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="receiverSignature" className="text-right">Receiver Signature</Label>
-        <Input id="receiverSignature" value={record.receiverSignature} onChange={(e) => setEditedItem({ ...record, receiverSignature: e.target.value })} className="col-span-3" />
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="dateSent" className="text-right">Date Sent</Label>
@@ -475,13 +459,30 @@ function EditRecordForm({ record, setEditedItem }: { record: Record, setEditedIt
         <Input id="dateReceived" type="date" value={record.dateReceived} onChange={(e) => setEditedItem({ ...record, dateReceived: e.target.value })} className="col-span-3" />
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="organizationRefNumber" className="text-right">Org. Ref. Number</Label>
-        <Input id="organizationRefNumber" value={record.organizationRefNumber} onChange={(e) => setEditedItem({ ...record, organizationRefNumber: e.target.value })} className="col-span-3" />
+        <Label htmlFor="file" className="text-right">Upload File</Label>
+        <div className="col-span-3">
+          <Input
+            id="file"
+            type="file"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => document.getElementById('file')?.click()}
+            className="w-full"
+          >
+            <Upload className="mr-2 h-4 w-4" /> Choose File
+          </Button>
+          {record.file && (
+            <p className="mt-2 text-sm text-gray-500">
+              Selected file: {record.file.name}
+            </p>
+          )}
+        </div>
       </div>
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="file" className="text-right">File Upload</Label>
-        <Input id="file" type="file" onChange={handleFileChange} className="col-span-3" />
-      </div>
+      
     </>
   )
 }

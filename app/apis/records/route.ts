@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     // Insert the new record into the database
     // Uncomment and adjust this query based on your database schema
     const result = await client.query('SELECT * FROM records');
-    console.log(result)
+    //console.log(result)
 
     // For now, we'll just echo back the received data
     const newRecord = body;
