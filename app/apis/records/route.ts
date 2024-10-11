@@ -14,10 +14,13 @@ export async function POST(req: Request) {
     const client = await getClient();
     
     // Insert the new record into the database
-    const result = await client.query('SELECT * FROM records')
+    // Uncomment and adjust this query based on your database schema
+    const result = await client.query('SELECT * FROM records');
+    console.log(result)
 
-    const newRecord = result.rows[0];
-    console.log(newRecord);
+    // For now, we'll just echo back the received data
+    const newRecord = body;
+   // console.log('Processed new record:', newRecord);
     return NextResponse.json(newRecord, { status: 201, headers });
   } catch (error) {
     console.error('Error processing new record:', error);
