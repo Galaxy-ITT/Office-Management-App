@@ -95,10 +95,10 @@ Follow these steps to run OfficeHub on your local machine:
 1. **Clone the repository**
     ```bash
    git clone https://github.com/aliveevie/management_app
-2. **Start Development Server**
+2. **Install dependencies**
     ```bash
     npm i
-3. **Navigate to**
+3. **Start development server**
     ```bash
     npm run dev
 4. **Navigate to**
