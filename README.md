@@ -1,8 +1,8 @@
-# CompanyHub: Comprehensive Office Management System
+# OfficeHub: Comprehensive Office Management System
 
 ## Overview
 
-CompanyHub is an all-in-one office management solution designed to streamline operations across various departments within an organization. Built with Next.js and React, it offers a user-friendly interface for managing administrative tasks, financial operations, human resources, and more. The application leverages modern web technologies and follows best practices in UI/UX design to deliver an efficient and intuitive user experience.
+OfficeHub is an all-in-one office management solution designed to streamline operations across various departments within an organization. Built with Next.js and React, it offers a user-friendly interface for managing administrative tasks, financial operations, human resources, and more. The application leverages modern web technologies and follows best practices in UI/UX design to deliver an efficient and intuitive user experience.
 
 ## Core Modules
 
@@ -88,11 +88,23 @@ CompanyHub is an all-in-one office management solution designed to streamline op
 - File Storage: AWS S3 or similar cloud storage
 - Deployment: Vercel or similar platform
 
-## Running CompanyHub Locally
+## Running OfficeHub Locally
 
-Follow these steps to run CompanyHub on your local machine:
+Follow these steps to run OfficeHub on your local machine:
 
 1. **Clone the repository**
-
-   ```bash
+    ```bash
    git clone https://github.com/aliveevie/management_app
+2. **Start Development Server**
+    ```bash
+    npm i
+3. **Navigate to**
+    ```bash
+    npm run dev
+4. **Navigate to**
+    [visit localhost:3000](http://localhost:3000)
+
+
+## Contribution Guide
+To Contribute to this repo check on issues and comment
+
