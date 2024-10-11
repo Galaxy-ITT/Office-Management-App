@@ -186,3 +186,36 @@ async function checkColumnsExist(client: Pool, tableName: string, columnNames: s
 }
 
 
+export async function refreshRecordsTable() {
+    try {
+        const client = await getClient();
+
+        // Drop the existing table if it exists
+        await client.query(`
+            DROP TABLE IF EXISTS records CASCADE
+        `);
+
+        console.log("Existing records table dropped.");
+
+        // Create the new table with the specified columns
+        await client.query(`
+            CREATE TABLE records (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(240) NOT NULL,
+                date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                status VARCHAR(50) NOT NULL,
+                source VARCHAR(100) NOT NULL,
+                sender_name VARCHAR(240) NOT NULL,
+                date_sent TIMESTAMP,
+                date_received TIMESTAMP,
+                organization_ref_number VARCHAR(100) NOT NULL,
+                file BYTEA
+            )
+        `);
+
+        console.log("New records table created successfully.");
+    } catch (error) {
+        console.error("Error refreshing records table:", error);
+    }
+}
+
