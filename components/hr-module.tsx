@@ -36,6 +36,15 @@ import {
 } from '@/components/ui/sidebar'
 
 import EmployeeDirectory from './EmployeeDirectory'
+import BenefitsCompensation from './BenefitsCompensation'
+import EmployeeProfile from './EmployeeProfile'
+import LeaveManagement from './LeaveManagement'
+import PayrollManagement from './PayrollManagement'
+import PerformanceReviews from './PerformanceReviews'
+import Recruitment from './Recruitment'
+import ReportsAnalytics from './ReportsAnalytics'
+import TrainingDevelopment from './TrainingDevelopment'
+
 
 const pages = [
   { name: 'Dashboard', icon: BarChart3 },
@@ -200,7 +209,14 @@ export function HrModule() {
           </div>
           {activePage === 'Dashboard' ? renderDashboard() : 
             activePage === 'Employee Directory' ? <EmployeeDirectory /> : 
-            <p>Content for {activePage} goes here.</p>
+            activePage === 'Employee Profile' ? <EmployeeProfile /> :
+            activePage === 'Benefits and Compensation' ? <BenefitsCompensation /> :
+            activePage === 'Leave Management' ? <LeaveManagement /> :
+            activePage === 'Payroll Management' ? <PayrollManagement /> :
+            activePage === 'Performance Reviews' ? <PerformanceReviews /> :
+            activePage === 'Recruitment' ? <Recruitment /> :
+            activePage === 'Reports and Analytics' ? <ReportsAnalytics /> :
+            activePage === 'Training and Development' ? <TrainingDevelopment /> : ""
           }
         </main>
       </div>
