@@ -20,31 +20,32 @@ export function AdminLoginComponent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!username || !password) {
-      setError('Please enter both username and password.')
-      return
-    }
-    try {
-      const response = await fetch('/apis/logins', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password, rememberMe }),
-      })
+    // if (!username || !password) {
+    //   setError('Please enter both username and password.')
+    //   return
+    // }
+    // try {
+    //   const response = await fetch('/apis/logins', {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({ username, password, rememberMe }),
+    //   })
 
-      if (!response.ok) {
-        throw new Error('Login failed')
-      }
+    //   if (!response.ok) {
+    //     throw new Error('Login failed')
+    //   }
 
-      const data = await response.json()
-      console.log('Login successful:', data)
+    //   const data = await response.json()
+    //   console.log('Login successful:', data)
 
-      // If login is successful, redirect to the dashboard
-      router.push('/pages/dashboard')
-    } catch (err) {
-      setError('Invalid username or password. Please try again.')
-    }
+    //   // If login is successful, redirect to the dashboard
+    // } catch (err) {
+    //   setError('Invalid username or password. Please try again.')
+    // }
+        router.push('/pages/dashboard')
+
   }
 
 

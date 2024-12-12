@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PlusCircle, Search, FileText, Users, Building2, LogOut, Edit, Save, X, Upload, Forward } from 'lucide-react'
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/app/hooks/use-toast";
 
 type Record = {
   id: string

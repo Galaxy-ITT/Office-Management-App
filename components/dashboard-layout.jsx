@@ -91,6 +91,7 @@ export function DashboardLayoutComponent() {
   )
 }
 
+
 function NavItem({ icon, label, isOpen }) {
   return (
     <Link href="#" className="flex items-center p-2 rounded-lg hover:bg-gray-100 transition-colors">

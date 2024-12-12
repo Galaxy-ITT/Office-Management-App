@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getClient } from '@/app/database';
 
-
 export async function GET(request: Request) {
   try {
     // Your logic to fetch admins goes here
@@ -9,7 +8,7 @@ export async function GET(request: Request) {
     const client = await getClient();
 
     const result = await client.query('SELECT * FROM lists_of_admins')
-    console.log(result.rows);
+    // console.log(result.rows);
 
     const admins = [
       { id: 1, name: 'Admin 1' },
