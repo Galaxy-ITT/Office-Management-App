@@ -44,6 +44,7 @@ import PerformanceReviews from './PerformanceReviews'
 import Recruitment from './Recruitment'
 import ReportsAnalytics from './ReportsAnalytics'
 import TrainingDevelopment from './TrainingDevelopment'
+import AttendanceManagement from './AttendanceManagement'
 
 
 const pages = [
@@ -210,6 +211,7 @@ export function HrModule() {
           {activePage === 'Dashboard' ? renderDashboard() : 
             activePage === 'Employee Directory' ? <EmployeeDirectory /> : 
             activePage === 'Employee Profile' ? <EmployeeProfile /> :
+            activePage === 'Attendance Management' ? <AttendanceManagement /> :
             activePage === 'Benefits and Compensation' ? <BenefitsCompensation /> :
             activePage === 'Leave Management' ? <LeaveManagement /> :
             activePage === 'Payroll Management' ? <PayrollManagement /> :
