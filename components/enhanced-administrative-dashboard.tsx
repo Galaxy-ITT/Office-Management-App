@@ -103,78 +103,79 @@ export function EnhancedAdministrativeDashboard() {
     }
   }
   const handleSave = async () => {
-    if (editedItem) {
-      let endpoint = '';
-      if (activeSection === 'records') {
-        endpoint = '/apis/records';
-      } else if (activeSection === 'employees') {
-        endpoint = '/apis/employees';
-      } else if (activeSection === 'office') {
-        endpoint = '/apis/offices';
-      }
+    // if (editedItem) {
+    //   let endpoint = '';
+    //   if (activeSection === 'records') {
+    //     endpoint = '/apis/records';
+    //   } else if (activeSection === 'employees') {
+    //     endpoint = '/apis/employees';
+    //   } else if (activeSection === 'office') {
+    //     endpoint = '/apis/offices';
+    //   }
   
-      const formData = new FormData();
+    //   const formData = new FormData();
   
-      // Append all fields to formData
-      Object.entries(editedItem).forEach(([key, value]) => {
-        if (value instanceof File) {
-          formData.append(key, value);
-        } else if (value !== null && value !== undefined) {
-          formData.append(key, value.toString());
-        }
-      });
+    //   // Append all fields to formData
+    //   Object.entries(editedItem).forEach(([key, value]) => {
+    //     if (value instanceof File) {
+    //       formData.append(key, value);
+    //     } else if (value !== null && value !== undefined) {
+    //       formData.append(key, value.toString());
+    //     }
+    //   });
   
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          body: formData,
-        });
+    //   try {
+    //     const response = await fetch(endpoint, {
+    //       method: 'POST',
+    //       body: formData,
+    //     });
   
-        if (!response.ok) {
-          throw new Error('Failed to save item');
-        }
+    //     if (!response.ok) {
+    //       throw new Error('Failed to save item');
+    //     }
   
-        const result = await response.json();
+    //     const result = await response.json();
   
-        if (activeSection === 'records') {
-          if (isAddingNew) {
-            setRecords([...records, result.record]);
-          } else {
-            setRecords(records.map(r => r.id === result.record.id ? result.record : r));
-          }
-        } else if (activeSection === 'employees') {
-          if (isAddingNew) {
-            setEmployees([...employees, result.record]);
-          } else {
-            setEmployees(employees.map(e => e.id === result.record.id ? result.record : e));
-          }
-        } else if (activeSection === 'office') {
-          if (isAddingNew) {
-            setOffices([...offices, result.record]);
-          } else {
-            setOffices(offices.map(o => o.id === result.record.id ? result.record : o));
-          }
-        }
+    //     if (activeSection === 'records') {
+    //       if (isAddingNew) {
+    //         setRecords([...records, result.record]);
+    //       } else {
+    //         setRecords(records.map(r => r.id === result.record.id ? result.record : r));
+    //       }
+    //     } else if (activeSection === 'employees') {
+    //       if (isAddingNew) {
+    //         setEmployees([...employees, result.record]);
+    //       } else {
+    //         setEmployees(employees.map(e => e.id === result.record.id ? result.record : e));
+    //       }
+    //     } else if (activeSection === 'office') {
+    //       if (isAddingNew) {
+    //         setOffices([...offices, result.record]);
+    //       } else {
+    //         setOffices(offices.map(o => o.id === result.record.id ? result.record : o));
+    //       }
+    //     }
   
-        setSelectedItem(result.record);
-        setIsEditing(false);
-        setIsAddingNew(false);
-        toast({
-          title: "Success",
-          description: result.message,
-        });
+    //     setSelectedItem(result.record);
+           setIsEditing(false);
+           setIsAddingNew(false);
+    //     toast({
+    //       title: "Success",
+    //       description: result.message,
+    //     });
   
-        // Hide the dialog
-        setSelectedItem(null);
-      } catch (error) {
-        console.error('Error saving item:', error);
-        toast({
-          title: "Error",
-          description: "Failed to save item. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
+    //     // Hide the dialog
+    //     setSelectedItem(null);
+    //   } catch (error) {
+    //     console.error('Error saving item:', error);
+    //     toast({
+    //       title: "Error",
+    //       description: "Failed to save item. Please try again.",
+    //       variant: "destructive",
+    //     });
+    //   }
+    // }
+      
   };
 
   const handleCancel = () => {

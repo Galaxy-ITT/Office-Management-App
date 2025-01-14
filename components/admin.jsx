@@ -34,13 +34,11 @@ export function AdministrativePage() {
     { id: '002', name: 'Q2 Financial Statement', dateCreated: '2023-07-01', status: 'Pending', source: 'Private Office' },
   ])
   const [showSuccess, setShowSuccess] = useState(false)
-
   const navigationItems = [
     { id: 'records', label: 'Manage Records', icon: <FileText className="h-5 w-5" /> },
     { id: 'employees', label: 'Manage Employees', icon: <Users className="h-5 w-5" /> },
     { id: 'office', label: 'Manage Office', icon: <Building className="h-5 w-5" /> },
   ]
-
 
   const addNewRecord = (record) => {
     const newRecord = {

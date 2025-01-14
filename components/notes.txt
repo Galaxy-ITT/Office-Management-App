@@ -1,0 +1,3 @@
+Incoming - External source
+Outgoing - Other MDAs
+Internal - For use in organisation

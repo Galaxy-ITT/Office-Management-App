@@ -1,8 +1,10 @@
-// import { AdministrativePage } from "@/components/admin";
-import { EnhancedAdministrativeDashboard } from "@/components/enhanced-administrative-dashboard";
+import { FileSystemProvider } from "@/components/FileSystemContext"; // Adjust the import path as necessary
+import AdminDashboard from "@/components/Admin-Dashboard";
 
-export default function Page(){
-        return <>
-            <EnhancedAdministrativeDashboard />
-        </>
+export default function Page() {
+    return (
+        <FileSystemProvider>
+            <AdminDashboard />
+        </FileSystemProvider>
+    );
 }
