@@ -13,7 +13,6 @@ type Record = {
   date: string;
   from: string;
   to: string;
-  sender: string;
   subject: string;
   content: string;
   attachmentUrl?: string;
@@ -26,8 +25,8 @@ type File = {
   id: string;
   fileNumber: string;
   name: string;
-  type: FileType;
   dateCreated: string;
+  referenceNumber: string;
   records: Record[];
 };
 
@@ -43,7 +42,6 @@ type FileSystemContextType = {
   deleteFile: (fileId: string) => void;
   forwardRecord: (fileId: string, recordId: string, forwardTo: string) => void;
   searchFiles: (query: string) => File[];
-  searchRecords: (query: string) => Record[];
 };
 
 const FileSystemContext = createContext<FileSystemContextType | undefined>(undefined);
@@ -68,6 +66,7 @@ export const FileSystemProvider: React.FC<{ children: ReactNode }> = ({ children
       name,
       type,
       dateCreated: new Date().toISOString(),
+      referenceNumber: `REF-${Date.now().toString().slice(-8)}`,
       records: []
     };
     setFiles(prev => [...prev, newFile]);
@@ -137,14 +136,6 @@ export const FileSystemProvider: React.FC<{ children: ReactNode }> = ({ children
     );
   };
 
-  const searchRecords = (query: string): Record[] => {
-    return files.flatMap(file => file.records).filter(record => 
-      record.subject.toLowerCase().includes(query.toLowerCase()) ||
-      record.uniqueNumber.toLowerCase().includes(query.toLowerCase()) ||
-      record.trackingNumber.toLowerCase().includes(query.toLowerCase())
-    );
-  };
-
   return (
     <FileSystemContext.Provider value={{
       files,
@@ -157,8 +148,7 @@ export const FileSystemProvider: React.FC<{ children: ReactNode }> = ({ children
       selectRecord,
       deleteFile,
       forwardRecord,
-      searchFiles,
-      searchRecords
+      searchFiles
     }}>
       {children}
     </FileSystemContext.Provider>

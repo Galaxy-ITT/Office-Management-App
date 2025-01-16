@@ -13,7 +13,6 @@ interface RecordDetailsProps {
     date: string;
     from: string;
     to: string;
-    sender: string;
     subject: string;
     content: string;
     attachmentUrl?: string;
@@ -56,7 +55,6 @@ const RecordDetails: React.FC<RecordDetailsProps> = ({ record, fileId }) => {
           <p><strong>Date:</strong> {new Date(record.date).toLocaleDateString()}</p>
           <p><strong>From:</strong> {record.from}</p>
           <p><strong>To:</strong> {record.to}</p>
-          <p><strong>Sender:</strong> {record.sender}</p>
           <p><strong>Subject:</strong> {record.subject}</p>
           <p><strong>Content:</strong> {record.content}</p>
           <p><strong>Status:</strong> {record.status}</p>

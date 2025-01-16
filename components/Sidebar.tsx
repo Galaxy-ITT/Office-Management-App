@@ -2,17 +2,16 @@ import React, { useState } from 'react';
 import { useFileSystem } from './FileSystemContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Folder, File, Search } from 'lucide-react';
+import { Folder, Search } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
-  const { searchFiles, searchRecords, selectFile } = useFileSystem();
+  const { searchFiles, selectFile } = useFileSystem();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Array<{ type: 'file' | 'record', item: any }>>([]);
+  const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; fileNumber: string }>>([]);
 
   const handleSearch = () => {
-    const fileResults = searchFiles(searchQuery).map(file => ({ type: 'file' as const, item: file }));
-    const recordResults = searchRecords(searchQuery).map(record => ({ type: 'record' as const, item: record }));
-    setSearchResults([...fileResults, ...recordResults]);
+    const fileResults = searchFiles(searchQuery);
+    setSearchResults(fileResults);
   };
 
   return (
@@ -21,7 +20,7 @@ const Sidebar: React.FC = () => {
       <div className="mb-4">
         <Input
           type="text"
-          placeholder="Search files/records"
+          placeholder="Search files"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="mb-2"
@@ -32,25 +31,17 @@ const Sidebar: React.FC = () => {
         </Button>
       </div>
       <div className="space-y-2">
-        {searchResults.map((result, index) => (
+        {searchResults.map((file) => (
           <div
-            key={index}
+            key={file.id}
             className="flex items-center p-2 hover:bg-gray-200 rounded cursor-pointer"
-            onClick={() => {
-              if (result.type === 'file') {
-                selectFile(result.item);
-              } else {
-                // Handle record selection
-                console.log('Record selected:', result.item);
-              }
-            }}
+            onClick={() => selectFile(file)}
           >
-            {result.type === 'file' ? (
-              <Folder className="w-4 h-4 mr-2" />
-            ) : (
-              <File className="w-4 h-4 mr-2" />
-            )}
-            <span>{result.type === 'file' ? result.item.name : result.item.subject}</span>
+            <Folder className="w-4 h-4 mr-2" />
+            <div>
+              <span className="block">{file.name}</span>
+              <span className="text-xs text-gray-500">{file.fileNumber}</span>
+            </div>
           </div>
         ))}
       </div>

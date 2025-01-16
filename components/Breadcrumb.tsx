@@ -1,5 +1,5 @@
 import React from 'react';
-import { useFileSystem } from '../context/FileSystemContext';
+import { useFileSystem } from './FileSystemContext';
 import { ChevronRight, Home } from 'lucide-react';
 
 const Breadcrumb: React.FC = () => {
@@ -18,7 +18,7 @@ const Breadcrumb: React.FC = () => {
             Home
           </a>
         </li>
-        {currentPath.map((folder, index) => (
+        {currentPath.map((folder: string | number | bigint | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<React.AwaitedReactNode> | null | undefined, index: React.Key | null | undefined) => (
           <li key={index}>
             <div className="flex items-center">
               <ChevronRight className="w-6 h-6 text-gray-400" />

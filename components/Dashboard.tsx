@@ -1,7 +1,5 @@
-"use client";
-
 import React, { useState } from 'react';
-import { useFileSystem } from './FileSystemContext';
+import { useFileSystem } from '../context/FileSystemContext';
 import { Plus, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NewFileDialog from './NewFileDialog';
