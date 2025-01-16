@@ -4,7 +4,9 @@ import AdminDashboard from "@/components/Admin-Dashboard";
 export default function Page() {
     return (
         <FileSystemProvider>
-            <AdminDashboard />
+            <main className="min-h-screen bg-background">
+                <AdminDashboard />
+            </main>
         </FileSystemProvider>
     );
 }
