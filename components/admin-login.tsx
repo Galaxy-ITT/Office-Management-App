@@ -10,7 +10,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Lock, AlertCircle } from 'lucide-react'
 
-export function AdminLoginComponent() {
+interface AdminLoginComponentProps {
+  url?: string;
+}
+
+export function AdminLoginComponent({ url }: AdminLoginComponentProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -20,34 +24,23 @@ export function AdminLoginComponent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    // if (!username || !password) {
-    //   setError('Please enter both username and password.')
-    //   return
-    // }
-    // try {
-    //   const response = await fetch('/apis/logins', {
-    //     method: 'POST',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //     },
-    //     body: JSON.stringify({ username, password, rememberMe }),
-    //   })
+    try {
+      // Example login logic (can be uncommented or replaced with real logic)
+      // const response = await fetch('/apis/logins', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ username, password, rememberMe }),
+      // });
+      // if (!response.ok) throw new Error('Login failed');
+      // const data = await response.json();
+      // console.log('Login successful:', data);
 
-    //   if (!response.ok) {
-    //     throw new Error('Login failed')
-    //   }
-
-    //   const data = await response.json()
-    //   console.log('Login successful:', data)
-
-    //   // If login is successful, redirect to the dashboard
-    // } catch (err) {
-    //   setError('Invalid username or password. Please try again.')
-    // }
-        router.push('/pages/dashboard')
-
+      // Redirect based on the provided URL or fallback to dashboard
+      router.push(url || '/pages/dashboard')
+    } catch (err) {
+      setError('Invalid username or password. Please try again.')
+    }
   }
-
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
