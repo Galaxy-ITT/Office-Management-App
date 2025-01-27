@@ -31,10 +31,7 @@ export function DashboardLayoutComponent() {
   const navItems = [
     { icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard", href: "/pages/dashboard" },
     { icon: <FileText className="h-5 w-5" />, label: "Administrative", href: "/pages/admin" },
-    { icon: <DollarSign className="h-5 w-5" />, label: "Finance", href: "/pages/finance" },
     { icon: <Users className="h-5 w-5" />, label: "Human Resources", href: "pages/hr" },
-    { icon: <Settings className="h-5 w-5" />, label: "IT", href: "/it" },
-    { icon: <HelpCircle className="h-5 w-5" />, label: "Support", href: "/pages/support" },
     { icon: <LogOut className="h-5 w-5" />, label: "Logout", href: "/" },
   ]
 
@@ -101,12 +98,7 @@ export function DashboardLayoutComponent() {
               icon={<FileText className="h-6 w-6 text-indigo-600" />}
               href="/pages/admin"
             />
-            <DashboardCard 
-              title="Finance" 
-              description="Track your company's financial performance and manage budgets."
-              icon={<DollarSign className="h-6 w-6 text-green-600" />}
-              href="/pages/finance"
-            />
+         
             <DashboardCard 
               title="Human Resources" 
               description="Manage employee records, benefits, and company culture."
