@@ -27,6 +27,7 @@ const RecordDetails: React.FC<RecordDetailsProps> = ({ record, fileId }) => {
   const { updateRecord, forwardRecord, selectRecord } = useFileSystem();
   const [forwardTo, setForwardTo] = useState('');
   const [customForwardTo, setCustomForwardTo] = useState('');
+  const [isForwarded, setIsForwarded] = useState(false);
 
   const handleForward = () => {
     const recipient = forwardTo === 'other' ? customForwardTo : forwardTo;
@@ -87,9 +88,13 @@ const RecordDetails: React.FC<RecordDetailsProps> = ({ record, fileId }) => {
               className="flex-grow"
             />
           )}
-          <Button onClick={handleForward} disabled={record.status === 'forwarded' || (!forwardTo || (forwardTo === 'other' && !customForwardTo))}>
-            {record.status === 'forwarded' ? 'Forwarded' : 'Forward'}
-          </Button>
+          <div className="flex items-center space-x-2">
+            <input type="checkbox" id="treatUrgent" className="h-4 w-4" />
+            <label htmlFor="treatUrgent" className="text-sm">Treat Urgent</label>
+          </div>
+        <Button onClick={() => { handleForward(); setIsForwarded(true); }} disabled={false}>
+          {isForwarded ? 'Forwarded' : 'Forward'}
+        </Button>
         </div>
         <div className="flex justify-between w-full">
           <Button onClick={handleCancel}>Cancel</Button>
@@ -101,4 +106,3 @@ const RecordDetails: React.FC<RecordDetailsProps> = ({ record, fileId }) => {
 };
 
 export default RecordDetails;
-
