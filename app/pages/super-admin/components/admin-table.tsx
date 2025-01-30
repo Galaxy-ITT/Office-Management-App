@@ -10,17 +10,20 @@ type Admin = {
   name: string
   email: string
   role: string
+  username: string
+  password: string
 }
 
 const initialAdmins: Admin[] = [
-  { id: "1", name: "John Doe", email: "john@example.com", role: "Super Admin" },
-  { id: "2", name: "Jane Smith", email: "jane@example.com", role: "Content Manager" },
+  { id: "1", name: "John Doe", email: "john@example.com", role: "Boss", username: "john.doe@company.com", password: "randomPass123" },
+  { id: "2", name: "Jane Smith", email: "jane@example.com", role: "Human Resource", username: "jane.smith@company.com", password: "randomPass456" },
 ]
 
 export function AdminTable() {
   const [admins, setAdmins] = useState<Admin[]>(initialAdmins)
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null)
   const [isAddingAdmin, setIsAddingAdmin] = useState(false)
+  const [hoveredAdmin, setHoveredAdmin] = useState<Admin | null>(null)
 
   const handleDelete = (id: string) => {
     setAdmins(admins.filter((admin) => admin.id !== id))
@@ -31,20 +34,26 @@ export function AdminTable() {
   }
 
   const handleSave = (updatedAdmin: Admin) => {
-    // If the admin is already in the list (editing), update it
     if (admins.find((admin) => admin.id === updatedAdmin.id)) {
       setAdmins(admins.map((admin) => (admin.id === updatedAdmin.id ? updatedAdmin : admin)))
     } else {
-      // If new, add it to the list
       setAdmins([...admins, updatedAdmin])
     }
     setEditingAdmin(null)
-    setIsAddingAdmin(false) // Exit the form after saving
+    setIsAddingAdmin(false)
   }
 
   const handleCancel = () => {
     setEditingAdmin(null)
-    setIsAddingAdmin(false) // Cancel the form
+    setIsAddingAdmin(false)
+  }
+
+  const handleMouseEnter = (admin: Admin) => {
+    setHoveredAdmin(admin)
+  }
+
+  const handleMouseLeave = () => {
+    setHoveredAdmin(null)
   }
 
   if (editingAdmin || isAddingAdmin) {
@@ -53,7 +62,7 @@ export function AdminTable() {
 
   return (
     <div>
-      <Button onClick={() => setIsAddingAdmin(true)}>Add Admin</Button>
+      <Button onClick={() => setIsAddingAdmin(true)} className="mb-4">Add Admin</Button>
       <Table>
         <TableHeader>
           <TableRow>
@@ -65,7 +74,12 @@ export function AdminTable() {
         </TableHeader>
         <TableBody>
           {admins.map((admin) => (
-            <TableRow key={admin.id}>
+            <TableRow 
+              key={admin.id} 
+              onMouseEnter={() => handleMouseEnter(admin)} 
+              onMouseLeave={handleMouseLeave}
+              className={`cursor-pointer ${hoveredAdmin?.id === admin.id ? "bg-gray-100" : ""}`}
+            >
               <TableCell>{admin.name}</TableCell>
               <TableCell>{admin.email}</TableCell>
               <TableCell>{admin.role}</TableCell>
@@ -81,6 +95,17 @@ export function AdminTable() {
           ))}
         </TableBody>
       </Table>
+
+      {hoveredAdmin && (
+        <div className="mt-4 p-4 border rounded-md bg-gray-50">
+          <h3 className="font-semibold text-lg">Admin Details</h3>
+          <p><strong>Name:</strong> {hoveredAdmin.name}</p>
+          <p><strong>Email:</strong> {hoveredAdmin.email}</p>
+          <p><strong>Role:</strong> {hoveredAdmin.role}</p>
+          <p><strong>Username:</strong> {hoveredAdmin.username}</p>
+          <p><strong>Password:</strong> {hoveredAdmin.password}</p>
+        </div>
+      )}
     </div>
   )
 }
