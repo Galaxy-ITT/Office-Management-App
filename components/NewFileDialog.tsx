@@ -11,12 +11,13 @@ interface NewFileDialogProps {
 
 const NewFileDialog: React.FC<NewFileDialogProps> = ({ isOpen, onClose }) => {
   const [fileName, setFileName] = useState('');
+  const [fileType, setFileType] = useState('Open File');
   const { addFile } = useFileSystem();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (fileName.trim()) {
-      addFile(fileName.trim());
+      addFile(fileName.trim(), fileType);
       setFileName('');
       onClose();
     }
@@ -36,6 +37,22 @@ const NewFileDialog: React.FC<NewFileDialogProps> = ({ isOpen, onClose }) => {
               placeholder="File Name"
             />
           </div>
+          <div>
+            <label htmlFor="fileType">File Type</label>
+
+          <select
+              id="fileType"
+              value={fileType}
+              onChange={(e) => setFileType(e.target.value as FileType)}
+              className="w-full p-2 mt-1 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Open File">Open Files</option>
+              <option value="Secret File">Secret Files - Govt Copy</option>
+              <option value="Subject Matter">Subject Matter - AOB</option>
+              <option value="Temporary">Temporary</option>
+            </select>
+
+          </div>
           <Button type="submit">Create File</Button>
         </form>
       </DialogContent>
@@ -44,4 +61,3 @@ const NewFileDialog: React.FC<NewFileDialogProps> = ({ isOpen, onClose }) => {
 };
 
 export default NewFileDialog;
-

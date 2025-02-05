@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-type FileType = 'internal' | 'external' | 'incoming' | 'outgoing';
+type FileType = 'open' | 'secret-types' | 'subject-matter' | 'temporary' | 'outgoing';
 type RecordType = 'incoming' | 'outgoing' | 'internal' | 'others';
 type RecordStatus = 'pending' | 'forwarded' | 'completed';
 
