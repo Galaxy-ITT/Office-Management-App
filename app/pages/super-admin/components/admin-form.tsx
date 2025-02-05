@@ -28,13 +28,6 @@ export function AdminForm({ admin, onSave, onCancel }: AdminFormProps) {
   const [username, setUsername] = useState(admin?.username || "")
   const [password, setPassword] = useState(admin?.password || "")
 
-  const generateLoginDetails = () => {
-    const generatedUsername = name.toLowerCase().replace(/ /g, ".") + "@company.com"
-    const generatedPassword = Math.random().toString(36).slice(-8)  // Simple random password
-    setUsername(generatedUsername)
-    setPassword(generatedPassword)
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const newAdmin = {
@@ -76,18 +69,15 @@ export function AdminForm({ admin, onSave, onCancel }: AdminFormProps) {
       </div>
       <div>
         <Label htmlFor="username">Username</Label>
-        <Input id="username" value={username} disabled />
+        <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
       </div>
       <div>
         <Label htmlFor="password">Password</Label>
-        <Input id="password" value={password} disabled />
+        <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
       </div>
       <div className="flex justify-end space-x-4">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
-        </Button>
-        <Button type="button" variant="outline" onClick={generateLoginDetails}>
-          Generate Login Details
         </Button>
         <Button type="submit">Save</Button>
       </div>

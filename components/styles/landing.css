@@ -1,0 +1,193 @@
+/* Base styles */
+body {
+  font-family: "Inter", sans-serif;
+  min-height: 100vh;
+  margin: 0 auto;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Header styles */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #1e293b;
+  z-index: 1000;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 4rem;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-link {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: #f8fafc;
+}
+
+/* Hero section styles */
+.hero {
+  padding-top: 8rem;
+  padding-bottom: 4rem;
+  text-align: center;
+  background: linear-gradient(to bottom, #0f172a, #1e293b);
+}
+
+.hero h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.125rem;
+  color: #cbd5e1;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+/* Login portals section styles */
+.portals-section {
+  padding: 4rem 0;
+}
+
+.portals-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.portal-card {
+  position: relative;
+  background-color: #1e293b;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.portal-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.portal-content {
+  position: relative;
+  z-index: 1;
+  padding: 1.5rem;
+}
+
+.portal-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.portal-description {
+  font-size: 0.875rem;
+  color: #cbd5e1;
+}
+
+.portal-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.portal-card:hover .portal-gradient {
+  opacity: 0.7;
+}
+
+/* Features section styles */
+.features-section {
+  background-color: rgba(15, 23, 42, 0.5);
+  padding: 4rem 0;
+}
+
+.features-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.feature-card {
+  background-color: rgba(30, 41, 59, 0.5);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.feature-icon {
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+}
+
+.feature-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.feature-description {
+  font-size: 0.875rem;
+  color: #cbd5e1;
+}
+
+/* Footer styles */
+.footer {
+  background-color: #0f172a;
+  border-top: 1px solid #1e293b;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.footer-text {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+}
+
