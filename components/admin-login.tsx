@@ -10,11 +10,34 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Lock, AlertCircle } from 'lucide-react'
 
-interface AdminLoginComponentProps {
-  url?: string;
+const users = [
+  { username: "adminUser", password: "adminPass", role: "Admin" },
+  { username: "employeeUser", password: "employeePass", role: "Employee" },
+  { username: "hrAdminUser", password: "hrAdminPass", role: "HR Admin" },
+  { username: "hrUser", password: "hrPass", role: "Human Resource" },
+  { username: "superAdminUser", password: "superAdminPass", role: "Super Admin" }
+];
+
+function getRedirectPath(role:any) {
+  switch (role) {
+    case "Admin":
+      return "/pages/admin";
+    case "Employee":
+      return "/pages/employee-profile";
+    case "HR Admin":
+      return "/pages/hr-admin";
+    case "Human Resource":
+      return "/pages/hr";
+    case "HR":
+      return "/pages/hr";
+    case "Super Admin":
+      return "/pages/super-admin";
+    default:
+      return "/login";
+  }
 }
 
-export function AdminLoginComponent({ url }: AdminLoginComponentProps) {
+export function AdminLoginComponent() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -24,20 +47,11 @@ export function AdminLoginComponent({ url }: AdminLoginComponentProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    try {
-      // Example login logic (can be uncommented or replaced with real logic)
-      // const response = await fetch('/apis/logins', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ username, password, rememberMe }),
-      // });
-      // if (!response.ok) throw new Error('Login failed');
-      // const data = await response.json();
-      // console.log('Login successful:', data);
-
-      // Redirect based on the provided URL or fallback to dashboard
-      router.push(url || '/pages/dashboard')
-    } catch (err) {
+    
+    const user = users.find(u => u.username === username && u.password === password);
+    if (user) {
+      router.push(getRedirectPath(user.role));
+    } else {
       setError('Invalid username or password. Please try again.')
     }
   }

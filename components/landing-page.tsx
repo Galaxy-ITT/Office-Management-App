@@ -1,57 +1,19 @@
-import Link from "next/link"
+"use client"
+
 import "./styles/landing.css"
+import Link from "next/link"
 
 export default function LandingPage() {
-  const loginPortals = [
-    {
-      title: "Administrative Portal",
-      description: "Access administrative controls and system settings",
-      path: "/pages/administrative-login",
-      gradient: "linear-gradient(to right, #3b82f6, #06b6d4)",
-    },
-    {
-      title: "Boss Portal",
-      description: "Management dashboard and oversight tools",
-      path: "/pages/boss-login",
-      gradient: "linear-gradient(to right, #8b5cf6, #ec4899)",
-    },
-    {
-      title: "Employee Portal",
-      description: "Access your work dashboard and tools",
-      path: "/pages/employee-login",
-      gradient: "linear-gradient(to right, #10b981, #14b8a6)",
-    },
-    {
-      title: "HR Admin Portal",
-      description: "Human resources administration and management",
-      path: "/pages/hr-admin-login",
-      gradient: "linear-gradient(to right, #f97316, #ef4444)",
-    },
-    {
-      title: "HR Portal",
-      description: "Access HR tools and employee management",
-      path: "/pages/human-resource-login",
-      gradient: "linear-gradient(to right, #f43f5e, #ec4899)",
-    },
-    {
-      title: "Super Admin Portal",
-      description: "Complete system control and administration",
-      path: "/pages/super-admin-login",
-      gradient: "linear-gradient(to right, #6366f1, #8b5cf6)",
-    },
-  ]
-
   return (
-    <div>
-      <header className="header">
-        <div className="container header-content">
+    <div className="landing-page">
+      <header>
+        <div className="container">
           <div className="logo">OfficeOS</div>
-          <nav className="nav-links">
-            <Link href="#portals" className="nav-link">
-              Login Portals
-            </Link>
-            <Link href="#features" className="nav-link">
-              Features
+          <nav>
+            <Link href="#features">Features</Link>
+            <Link href="#contact">Contact</Link>
+            <Link href="/pages/admins-login" className="btn btn-primary">
+              Login
             </Link>
           </nav>
         </div>
@@ -60,85 +22,79 @@ export default function LandingPage() {
       <main>
         <section className="hero">
           <div className="container">
-            <h1>Office Management System</h1>
+            <h1>Streamline Your Office Management</h1>
             <p>
-              Streamline your office operations with our comprehensive management solution. Select your portal to access
-              your dashboard.
+              OfficeOS provides a comprehensive solution to manage your office operations efficiently. Boost
+              productivity and simplify administration with our powerful tools.
             </p>
+            <Link href="/pages/admins-login" className="btn btn-large btn-primary">
+              Get Started
+            </Link>
           </div>
         </section>
 
-        <section id="portals" className="portals-section">
+        <section id="features" className="features">
           <div className="container">
-            <h2>Login Portals</h2>
-            <div className="portals-grid">
-              {loginPortals.map((portal, index) => (
-                <Link href={portal.path} key={index} className="portal-card">
-                  <div className="portal-gradient" style={{ background: portal.gradient }}></div>
-                  <div className="portal-content">
-                    <h3 className="portal-title">{portal.title}</h3>
-                    <p className="portal-description">{portal.description}</p>
-                  </div>
-                </Link>
-              ))}
+            <h2>Key Features</h2>
+            <div className="feature-grid">
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <h3>Secure Access</h3>
+                <p>Role-based authentication and authorization for maximum security.</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                </div>
+                <h3>Centralized Management</h3>
+                <p>Manage all office operations from a single, intuitive dashboard.</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3>Advanced Analytics</h3>
+                <p>Gain valuable insights with comprehensive reporting and analytics tools.</p>
+              </div>
             </div>
           </div>
         </section>
 
-        <section id="features" className="features-section">
+        <section id="contact" className="contact">
           <div className="container">
-            <h2>System Features</h2>
-            <div className="features-grid">
-              <div className="feature-card">
-                <div className="feature-icon" style={{ backgroundColor: "rgba(59, 130, 246, 0.1)" }}>
-                  <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="feature-title">Secure Access</h3>
-                <p className="feature-description">Role-based authentication and authorization</p>
+            <h2>Get in Touch</h2>
+            <form className="contact-form">
+              <div className="form-group">
+                <label htmlFor="name">Name</label>
+                <input type="text" id="name" name="name" required />
               </div>
-              <div className="feature-card">
-                <div className="feature-icon" style={{ backgroundColor: "rgba(16, 185, 129, 0.1)" }}>
-                  <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                </div>
-                <h3 className="feature-title">Centralized Management</h3>
-                <p className="feature-description">All office operations in one place</p>
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
+                <input type="email" id="email" name="email" required />
               </div>
-              <div className="feature-card">
-                <div className="feature-icon" style={{ backgroundColor: "rgba(139, 92, 246, 0.1)" }}>
-                  <svg className="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="feature-title">Advanced Analytics</h3>
-                <p className="feature-description">Comprehensive reporting and insights</p>
+              <div className="form-group">
+                <label htmlFor="message">Message</label>
+                <textarea id="message" name="message" rows={4} required></textarea>
               </div>
-            </div>
+              <button type="submit" className="btn btn-primary">
+                Send Message
+              </button>
+            </form>
           </div>
         </section>
       </main>
 
-      <footer className="footer">
+      <footer>
         <div className="container">
-          <p className="footer-text">&copy; {new Date().getFullYear()} OfficeOS. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} OfficeOS. All rights reserved.</p>
         </div>
       </footer>
     </div>
