@@ -13,7 +13,7 @@ import { Lock, AlertCircle } from 'lucide-react'
 const users = [
   { username: "adminUser", password: "adminPass", role: "Admin" },
   { username: "employeeUser", password: "employeePass", role: "Employee" },
-  { username: "hrAdminUser", password: "hrAdminPass", role: "HR Admin" },
+  { username: "hodAdminUser", password: "hodAdminPass", role: "HOD Admin" },
   { username: "hrUser", password: "hrPass", role: "Human Resource" },
   { username: "superAdminUser", password: "superAdminPass", role: "Super Admin" }
 ];
@@ -24,8 +24,8 @@ function getRedirectPath(role:any) {
       return "/pages/admin";
     case "Employee":
       return "/pages/employee-profile";
-    case "HR Admin":
-      return "/pages/hr-admin";
+    case "HOD Admin":
+      return "/pages/hod-admin";
     case "Human Resource":
       return "/pages/hr";
     case "HR":
@@ -47,7 +47,7 @@ export function AdminLoginComponent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    
+
     const user = users.find(u => u.username === username && u.password === password);
     if (user) {
       router.push(getRedirectPath(user.role));

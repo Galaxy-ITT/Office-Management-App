@@ -1,4 +1,4 @@
-import { EmployeeAttendance } from "./components/EmployeeAttendance"
+import { EmployeeAttendance } from "./EmployeeAttendance"
 
 const mockAttendanceData = {
   total: 230,

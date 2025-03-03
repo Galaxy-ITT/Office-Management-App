@@ -13,7 +13,6 @@ const NewFileDialog: React.FC<NewFileDialogProps> = ({ isOpen, onClose }) => {
   const [fileName, setFileName] = useState('');
   const [fileType, setFileType] = useState('Open File');
   const { addFile } = useFileSystem();
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (fileName.trim()) {

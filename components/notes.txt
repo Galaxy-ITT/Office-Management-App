@@ -1,3 +1,26 @@
 Incoming - External source
 Outgoing - Other MDAs
 Internal - For use in organisation
+
+Incoming - 
+ - Address - To
+ Default to BOSS NO specify.
+ - Attentation 
+    - Person
+    
+Outgoing - 
+ From agencies to other MDAs
+
+Files:
+ secret Files
+  eg suspension, letter of request etc.
+
+Each organisation to have it's files:
+
+Ref Number:
+MDA - 
+
+Reference Number begans forEach organisation:
+    -   Number - one:
+    -   Begins - Two:
+    -   Three  - Three:
