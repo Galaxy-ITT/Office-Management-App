@@ -11,7 +11,6 @@ const config = {
   host: "",
   port: "",
   database: ""
- 
 };
 
 let client: Pool | null = null;

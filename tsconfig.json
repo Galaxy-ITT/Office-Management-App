@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -18,9 +22,28 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": [
+        "./*"
+      ]
+    },
+    "target": "ES2017"
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/database/tables/tables.js", "app/database/index.js", "components/dashboardLatest.jsx", "components/app-administrative-page.jsx", "components/dashboard-layout.jsx", "components/home_page.jsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "app/database/tables/tables.js",
+    "app/database/index.js",
+    "components/dashboardLatest.jsx",
+    "components/app-administrative-page.jsx",
+    "components/dashboard-layout.jsx",
+    "components/home_page.jsx",
+    "app/database/connection.js",
+    "app/database/tables/initTable.js",
+    "app/database/tables/initTable.js"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
