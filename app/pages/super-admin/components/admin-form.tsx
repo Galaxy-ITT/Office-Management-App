@@ -28,37 +28,47 @@ export function AdminForm({ admin, onSave, onCancel }: AdminFormProps) {
   const [role, setRole] = useState(admin?.role || "");
   const [username, setUsername] = useState(admin?.username || "");
   const [password, setPassword] = useState(admin?.password || "");
+  const [error, setError] = useState<{ username?: string; email?: string } | null>(null);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    setError(null); // Reset errors on submit
+  
     // Create FormData
     const formData = new FormData();
-    formData.append("id", admin?.id || Date.now().toString());
     formData.append("name", name);
     formData.append("email", email);
     formData.append("role", role);
     formData.append("username", username);
     formData.append("password", password);
-
-    // Log FormData for debugging
+  
     console.log("📝 FormData submitted:");
     formData.forEach((value, key) => console.log(`${key}: ${value}`));
-
-    // Send to saveAdmins function
-    await saveAdmins(formData);
-
-    // Call onSave with the new admin data
-    onSave({
-      id: formData.get("id") as string,
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      role: formData.get("role") as string,
-      username: formData.get("username") as string,
-      password: formData.get("password") as string,
-    });
+  
+    // Send data to saveAdmins
+    const result = await saveAdmins(formData);
+  
+    if (result.success) {
+      onSave({
+        id: Date.now().toString(), // Use timestamp for now
+        name,
+        email,
+        role,
+        username,
+        password,
+      });
+    } else {
+      if (result.error === "Username already exists") {
+        setError({ username: result.error });
+      } else if (result.error === "Email already exists") {
+        setError({ email: result.error });
+      } else {
+        alert(result.error || "❌ Failed to save admin. Please try again.");
+      }
+    }
   };
-
+  
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
@@ -66,9 +76,10 @@ export function AdminForm({ admin, onSave, onCancel }: AdminFormProps) {
         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
       <div>
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      </div>
+      <Label htmlFor="email">Email</Label>
+      <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      {error?.email && <p className="text-red-500">{error.email}</p>}
+    </div>
       <div>
         <Label htmlFor="role">Role</Label>
         <Select value={role} onValueChange={setRole} required>
@@ -85,10 +96,13 @@ export function AdminForm({ admin, onSave, onCancel }: AdminFormProps) {
           </SelectContent>
         </Select>
       </div>
+
       <div>
-        <Label htmlFor="username">Username</Label>
-        <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-      </div>
+      <Label htmlFor="username">Username</Label>
+      <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+      {error?.username && <p className="text-red-500">{error.username}</p>}
+    </div>
+
       <div>
         <Label htmlFor="password">Password</Label>
         <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />

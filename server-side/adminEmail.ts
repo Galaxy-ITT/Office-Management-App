@@ -19,7 +19,7 @@ export async function sendAdminNotification(
       },
     });
 
-    const subject = "Your Admin Account Details - OfficeManagement";
+    const subject = "Your Admin Account Details - Office Management";
 
     const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
@@ -27,7 +27,7 @@ export async function sendAdminNotification(
       
       <p>Dear <strong>${name}</strong>,</p>
       
-      <p>You have been assigned the role of <strong>${role}</strong> in OfficeManagement. Below are your login credentials:</p>
+      <p>You have been assigned the role of <strong>${role}</strong> in Office Management. Below are your login credentials:</p>
       
       <div style="background: #f3f3f3; padding: 10px; border-radius: 6px;">
         <p><strong>Username:</strong> ${username}</p>
@@ -50,7 +50,7 @@ export async function sendAdminNotification(
 
     // Send email
     const info = await transporter.sendMail({
-      from: `"OfficeManagement" <${process.env.EMAIL}>`,
+      from: `"Office Management" <${process.env.EMAIL}>`,
       to,
       subject,
       html,
