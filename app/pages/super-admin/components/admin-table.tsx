@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { AdminForm } from "./admin-form"
+import { getAdmins } from "@/server-side/queries"
+
 
 type Admin = {
   id: string
@@ -14,16 +16,23 @@ type Admin = {
   password: string
 }
 
-const initialAdmins: Admin[] = [
-  { id: "1", name: "John Doe", email: "john@example.com", role: "Boss", username: "john.doe@company.com", password: "randomPass123" },
-  { id: "2", name: "Jane Smith", email: "jane@example.com", role: "Human Resource", username: "jane.smith@company.com", password: "randomPass456" },
-]
+const initialAdmins: Admin[] = []
 
 export function AdminTable() {
   const [admins, setAdmins] = useState<Admin[]>(initialAdmins)
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null)
   const [isAddingAdmin, setIsAddingAdmin] = useState(false)
   const [hoveredAdmin, setHoveredAdmin] = useState<Admin | null>(null)
+
+  useEffect(() => {
+    async function fetchAdmins() { // Define the async function
+      const admins = await getAdmins()
+      console.log(admins) 
+      setAdmins(admins)
+    }
+
+    fetchAdmins()
+  },[])
 
   const handleDelete = (id: string) => {
     setAdmins(admins.filter((admin) => admin.id !== id))

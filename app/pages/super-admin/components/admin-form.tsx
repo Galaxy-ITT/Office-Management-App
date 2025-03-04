@@ -1,45 +1,63 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { saveAdmins } from "@/server-side/saveAdmins";
 
 type Admin = {
-  id: string
-  name: string
-  email: string
-  role: string
-  username: string
-  password: string
-}
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  username: string;
+  password: string;
+};
 
 type AdminFormProps = {
-  admin?: Admin
-  onSave: (admin: Admin) => void
-  onCancel: () => void
-}
+  admin?: Admin;
+  onSave: (admin: Admin) => void;
+  onCancel: () => void;
+};
 
 export function AdminForm({ admin, onSave, onCancel }: AdminFormProps) {
-  const [name, setName] = useState(admin?.name || "")
-  const [email, setEmail] = useState(admin?.email || "")
-  const [role, setRole] = useState(admin?.role || "")
-  const [username, setUsername] = useState(admin?.username || "")
-  const [password, setPassword] = useState(admin?.password || "")
+  const [name, setName] = useState(admin?.name || "");
+  const [email, setEmail] = useState(admin?.email || "");
+  const [role, setRole] = useState(admin?.role || "");
+  const [username, setUsername] = useState(admin?.username || "");
+  const [password, setPassword] = useState(admin?.password || "");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newAdmin = {
-      id: admin?.id || Date.now().toString(),
-      name,
-      email,
-      role,
-      username,
-      password,
-    }
-    onSave(newAdmin)
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append("id", admin?.id || Date.now().toString());
+    formData.append("name", name);
+    formData.append("email", email);
+    formData.append("role", role);
+    formData.append("username", username);
+    formData.append("password", password);
+
+    // Log FormData for debugging
+    console.log("📝 FormData submitted:");
+    formData.forEach((value, key) => console.log(`${key}: ${value}`));
+
+    // Send to saveAdmins function
+    await saveAdmins(formData);
+
+    // Call onSave with the new admin data
+    onSave({
+      id: formData.get("id") as string,
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      role: formData.get("role") as string,
+      username: formData.get("username") as string,
+      password: formData.get("password") as string,
+    });
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -82,5 +100,5 @@ export function AdminForm({ admin, onSave, onCancel }: AdminFormProps) {
         <Button type="submit">Save</Button>
       </div>
     </form>
-  )
+  );
 }

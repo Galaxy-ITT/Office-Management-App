@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "init:tables": "nodemon app/database/tables/initTable.js"
+    "init:tables": "node app/database/tables/initTable.js"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.2",
@@ -34,6 +34,7 @@
     "lucide-react": "^0.436.0",
     "mysql2": "^3.12.0",
     "next": "15.2.0",
+    "nodemailer": "^6.10.0",
     "nodemon": "^3.1.9",
     "pg": "^8.13.0",
     "react": "19.0.0",
@@ -48,6 +49,7 @@
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20",
+    "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.11.10",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",

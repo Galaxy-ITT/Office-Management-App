@@ -9,6 +9,7 @@ export default async function adminsTable() {
             CREATE TABLE IF NOT EXISTS lists_of_admins (
                 admin_id SERIAL PRIMARY KEY,
                 name VARCHAR(240) NOT NULL,
+                email VARCHAR(240) NOT NULL,
                 role VARCHAR(240) NOT NULL,
                 password VARCHAR(240) NOT NULL,
                 date_assigned TIMESTAMP DEFAULT CURRENT_TIMESTAMP
