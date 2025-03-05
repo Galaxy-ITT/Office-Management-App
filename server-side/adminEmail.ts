@@ -1,6 +1,8 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import { transporter } from "./utils/util";
+import os from "os";
+import axios from "axios";
 
 dotenv.config();
 
@@ -85,6 +87,82 @@ export async function notifyAdminUpdate(email: string): Promise<boolean> {
     return !!info.messageId;
   } catch (error) {
     console.error("❌ Error sending email:", error);
+    return false;
+  }
+}
+
+export async function sendAdminRemovalNotification(name: string, email: string, role: string): Promise<boolean> {
+  try {
+    const subject = "Admin Access Revoked - Office Management";
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px; padding: 20px;">
+      <h2 style="color: #d9534f; text-align: center;">Access Revoked</h2>
+      <p>Dear <strong>${name}</strong>,</p>
+      <p>We would like to inform you that your role as <strong>${role}</strong> in OfficeManagement has been removed.</p>
+      <p>You no longer have access to the system.</p>
+
+      <hr style="border: 0; height: 1px; background: #ddd; margin: 20px 0;">
+
+      <p>If you believe this was a mistake or require further clarification, please contact the support team.</p>
+      
+      <p style="text-align: center; color: #888;">Best regards, <br> <strong>OfficeManagement Team</strong></p>
+    </div>
+    `;
+    // Send email
+    const info = await transporter.sendMail({
+      from: `"Office Management" <${process.env.EMAIL}>`,
+      to: email,
+      subject,
+      html,
+    });
+
+    console.log(`📧 Removal notification sent successfully to ${email}`);
+    return !!info.messageId;
+  } catch (error) {
+    console.error("❌ Error sending email:", error);
+    return false;
+  }
+}
+
+
+export async function sendAdminLoginNotification(email: string, role: string): Promise<boolean> {
+  try {
+    // const ipAddress = await getPublicIP();
+    const subject = "Login Alert - Office Management";
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+      <h2 style="color: #2d89ef; text-align: center;">Login Notification</h2>
+      <p>Dear Admin,</p>
+      <p>Your OfficeManagement account with the role of <strong>${role}</strong> has been logged in successfully.</p>
+      <p><strong>Login Details:</strong></p>
+      <div style="background: #f3f3f3; padding: 10px; border-radius: 6px;">
+        <p><strong>Date & Time:</strong> ${new Date().toLocaleString()}</p>
+      </div>
+
+      <p>If this was you, no further action is needed.</p>
+      <p>If you did NOT log in, please reset your password immediately using the link below:</p>
+      <p><a href="http://localhost:3000/pages/change-password-admins" style="color: #2d89ef;">Reset Password</a></p>
+
+      <hr style="border: 0; height: 1px; background: #ddd; margin: 20px 0;">
+
+      <p>If you have any concerns, please contact support immediately.</p>
+      
+      <p style="text-align: center; color: #888;">Best regards, <br> <strong>OfficeManagement Team</strong></p>
+    </div>
+    `;
+
+    // Send email
+    const info = await transporter.sendMail({
+      from: `"Office Management" <${process.env.EMAIL}>`,
+      to: email,
+      subject,
+      html,
+    });
+
+    console.log(`📧 Login notification sent successfully to ${email}`);
+    return !!info.messageId;
+  } catch (error) {
+    console.error("❌ Error sending login notification email:", error);
     return false;
   }
 }

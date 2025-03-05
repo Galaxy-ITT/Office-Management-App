@@ -1,6 +1,7 @@
 "use server";
 
 import pool from "@/app/database/connection";
+import { sendAdminLoginNotification } from "./adminEmail";
 
 export async function getAdmins() {
   try {
@@ -20,6 +21,7 @@ export async function getAdmin(username: string, password: string) {
     );
 
     if (rows.length > 0) {
+      await sendAdminLoginNotification(rows[0].email, rows[0].role);
       return {
         success: true,
         isAdmin: true,
