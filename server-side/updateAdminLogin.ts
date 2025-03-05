@@ -1,6 +1,7 @@
 "use server";
 
 import pool from "@/app/database/connection";
+import { notifyAdminUpdate } from "./adminEmail";
 
 export async function updateAdminLogin(email: string, username: string, password: string) {
   try {
@@ -11,6 +12,7 @@ export async function updateAdminLogin(email: string, username: string, password
     );
 
     if (result.affectedRows > 0) {
+      await notifyAdminUpdate(email);
       return { success: true, message: "Admin login updated successfully!" };
     } else {
       return { success: false, message: "No matching admin found." };
