@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Lock, AlertCircle } from 'lucide-react'
+import { getAdmin } from '@/server-side/queries'
 
 const users = [
   { username: "adminUser", password: "adminPass", role: "Admin" },
@@ -18,22 +19,22 @@ const users = [
   { username: "superAdminUser", password: "superAdminPass", role: "Super Admin" }
 ];
 
-function getRedirectPath(role:any) {
+function getRedirectPath(role: any) {
   switch (role) {
-    case "Admin":
+    case "Boss":
+      return "/pages/boss";
+    case "Registry":
       return "/pages/admin";
-    case "Employee":
-      return "/pages/employee-profile";
-    case "HOD Admin":
-      return "/pages/hod-admin";
     case "Human Resource":
       return "/pages/hr";
-    case "HR":
-      return "/pages/hr";
+    case "HOD":
+      return "/pages/hod-admin";
+    case "Employee":
+      return "/pages/employee-profile";
     case "Super Admin":
       return "/pages/super-admin";
     default:
-      return "/login";
+      return "/pages/admins-login";
   }
 }
 
@@ -47,10 +48,12 @@ export function AdminLoginComponent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    const admin = await getAdmin(username, password)
+    console.log(admin)
 
     const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
-      router.push(getRedirectPath(user.role));
+    if (admin.success) {
+      router.push(getRedirectPath(admin.data));
     } else {
       setError('Invalid username or password. Please try again.')
     }

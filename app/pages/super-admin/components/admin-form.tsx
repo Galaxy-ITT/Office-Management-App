@@ -92,11 +92,10 @@ export function AdminForm({ admin, onSave, onCancel }: AdminFormProps) {
             <SelectItem value="Human Resource">Human Resource</SelectItem>
             <SelectItem value="HOD">HOD</SelectItem>
             <SelectItem value="Employee">Employee</SelectItem>
-            <SelectItem value="Others">Others</SelectItem>
+            <SelectItem value="Super Admin">Super Admin</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
       <div>
       <Label htmlFor="username">Username</Label>
       <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
