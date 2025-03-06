@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { AdminForm } from "./admin-form"
 import { getAdmins } from "@/server-side/queries"
-
+import { Badge } from "@/components/ui/badge"
 
 type Admin = {
   id: string
@@ -16,46 +15,24 @@ type Admin = {
   password: string
 }
 
-const initialAdmins: Admin[] = []
+type AdminTableProps = {
+  onAddAdmin: () => void
+  onEditAdmin: (admin: Admin) => void
+}
 
-export function AdminTable() {
-  const [admins, setAdmins] = useState<Admin[]>(initialAdmins)
-  const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null)
-  const [isAddingAdmin, setIsAddingAdmin] = useState(false)
+export function AdminTable({ onAddAdmin, onEditAdmin }: AdminTableProps) {
+  const [admins, setAdmins] = useState<Admin[]>([])
   const [hoveredAdmin, setHoveredAdmin] = useState<Admin | null>(null)
 
   useEffect(() => {
-    async function fetchAdmins() { // Define the async function
+    async function fetchAdmins() {
       const admins = await getAdmins()
-      console.log(admins) 
+      //@ts-ignore
       setAdmins(admins)
     }
 
     fetchAdmins()
-  },[])
-
-  const handleDelete = (id: string) => {
-    setAdmins(admins.filter((admin) => admin.id !== id))
-  }
-
-  const handleEdit = (admin: Admin) => {
-    setEditingAdmin(admin)
-  }
-
-  const handleSave = (updatedAdmin: Admin) => {
-    if (admins.find((admin) => admin.id === updatedAdmin.id)) {
-      setAdmins(admins.map((admin) => (admin.id === updatedAdmin.id ? updatedAdmin : admin)))
-    } else {
-      setAdmins([...admins, updatedAdmin])
-    }
-    setEditingAdmin(null)
-    setIsAddingAdmin(false)
-  }
-
-  const handleCancel = () => {
-    setEditingAdmin(null)
-    setIsAddingAdmin(false)
-  }
+  }, [])
 
   const handleMouseEnter = (admin: Admin) => {
     setHoveredAdmin(admin)
@@ -65,56 +42,82 @@ export function AdminTable() {
     setHoveredAdmin(null)
   }
 
-  if (editingAdmin || isAddingAdmin) {
-    return <AdminForm admin={editingAdmin} onSave={handleSave} onCancel={handleCancel} />
-  }
-
   return (
-    <div>
-      <Button onClick={() => setIsAddingAdmin(true)} className="mb-4">Add Admin</Button>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {admins.map((admin) => (
-            <TableRow 
-              key={admin.id} 
-              onMouseEnter={() => handleMouseEnter(admin)} 
-              onMouseLeave={handleMouseLeave}
-              className={`cursor-pointer ${hoveredAdmin?.id === admin.id ? "bg-gray-100" : ""}`}
-            >
-              <TableCell>{admin.name}</TableCell>
-              <TableCell>{admin.email}</TableCell>
-              <TableCell>{admin.role}</TableCell>
-              <TableCell>
-                <Button variant="outline" size="sm" className="mr-2" onClick={() => handleEdit(admin)}>
-                  Edit
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => handleDelete(admin.id)}>
-                  Delete
-                </Button>
-              </TableCell>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-lg font-medium">Admin List</h2>
+          <p className="text-sm text-muted-foreground">Manage your administrators</p>
+        </div>
+        <Button onClick={onAddAdmin}>Add Admin</Button>
+      </div>
+
+      <div className="border rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {admins.map((admin) => (
+              <TableRow
+                key={admin.id}
+                onMouseEnter={() => handleMouseEnter(admin)}
+                onMouseLeave={handleMouseLeave}
+                className={`cursor-pointer ${hoveredAdmin?.id === admin.id ? "bg-gray-100" : ""}`}
+              >
+                <TableCell className="font-medium">{admin.name}</TableCell>
+                <TableCell>{admin.email}</TableCell>
+                <TableCell>
+                  {admin.role === "Super Admin" ? (
+                    <Badge variant="destructive">{admin.role}</Badge>
+                  ) : (
+                    <Badge variant="outline">{admin.role}</Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary">Active</Badge>
+                </TableCell>
+                <TableCell>
+                  <Button variant="outline" size="sm" onClick={() => onEditAdmin(admin)}>
+                    Edit
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
       {hoveredAdmin && (
         <div className="mt-4 p-4 border rounded-md bg-gray-50">
           <h3 className="font-semibold text-lg">Admin Details</h3>
-          <p><strong>Name:</strong> {hoveredAdmin.name}</p>
-          <p><strong>Email:</strong> {hoveredAdmin.email}</p>
-          <p><strong>Role:</strong> {hoveredAdmin.role}</p>
-          <p><strong>Username:</strong> {hoveredAdmin.username}</p>
-          <p><strong>Password:</strong> {hoveredAdmin.password}</p>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div>
+              <p className="text-sm text-muted-foreground">Name</p>
+              <p className="font-medium">{hoveredAdmin.name}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Email</p>
+              <p className="font-medium">{hoveredAdmin.email}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Role</p>
+              <p className="font-medium">{hoveredAdmin.role}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Username</p>
+              <p className="font-medium">{hoveredAdmin.username}</p>
+            </div>
+          </div>
         </div>
       )}
     </div>
   )
 }
+

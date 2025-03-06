@@ -1,0 +1,91 @@
+.login-chart-container {
+  display: flex;
+  height: 100%;
+  padding: 20px 0;
+}
+
+.login-chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-right: 10px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.login-chart-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-chart-bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  padding-bottom: 10px;
+}
+
+.login-chart-bar {
+  flex: 1;
+  background: linear-gradient(to top, #3b82f6, #60a5fa);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s ease;
+}
+
+.login-chart-bar:hover {
+  background: linear-gradient(to top, #2563eb, #3b82f6);
+  cursor: pointer;
+}
+
+.login-chart-x-axis {
+  display: flex;
+  justify-content: space-around;
+  color: #64748b;
+  font-size: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Role Chart Styles */
+.role-chart-container {
+  height: 100%;
+  padding: 20px 0;
+}
+
+.role-chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.role-chart-bar-group {
+  display: flex;
+  align-items: center;
+}
+
+.role-chart-label {
+  width: 100px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.role-chart-bar {
+  height: 30px;
+  background: linear-gradient(to right, #8b5cf6, #a78bfa);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  color: white;
+  font-weight: 500;
+  transition: width 0.5s ease;
+}
+
+.role-chart-bar:hover {
+  background: linear-gradient(to right, #7c3aed, #8b5cf6);
+  cursor: pointer;
+}
+
