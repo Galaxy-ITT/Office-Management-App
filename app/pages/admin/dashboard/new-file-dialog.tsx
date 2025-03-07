@@ -27,8 +27,8 @@ export default function NewFileDialog({ isOpen, onClose, onFileCreated }: NewFil
       addFile(fileName.trim(), fileType)
 
       // Call server component
-      const result = await handleFileOperation("admin123", "admin", true)
-      console.log("Server response:", result)
+      // const result = await handleFileOperation("admin123", "admin", true)
+      // console.log("Server response:", result)
 
       setFileName("")
       onClose()

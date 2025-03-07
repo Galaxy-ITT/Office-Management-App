@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
+import { handleFileOperation } from "./file-system-server"
 
 export type FileType = "Open File" | "Secret File" | "Subject Matter" | "Temporary"
 
@@ -131,20 +132,29 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const selectRecord = (record: Record | null) => {
     setSelectedRecord(record)
   }
-
-  const addFile = (name: string, type: FileType) => {
-    const newFile: File = {
-      id: uuidv4(),
-      fileNumber: `F-${new Date().getFullYear()}-${String(files.length + 1).padStart(3, "0")}`,
-      name,
-      type,
-      dateCreated: new Date().toISOString(),
-      referenceNumber: `REF-${String(files.length + 1).padStart(3, "0")}`,
-      records: [],
-    }
-    setFiles([...files, newFile])
+  
+  // Client-side function
+const addFile = async (name: string, type: FileType) => {
+  const newFile = {
+    id: uuidv4(),
+    fileNumber: `F-${new Date().getFullYear()}-${String(files.length + 1).padStart(3, "0")}`,
+    name,
+    type,
+    dateCreated: new Date().toISOString(),
+    referenceNumber: `REF-${String(files.length + 1).padStart(3, "0")}`,
+    records: [],
   }
 
+  // Instead of using FormData, pass the object directly
+  const success = await handleFileOperation(newFile, "admin01", "admin01", true, false, false)
+
+  if (success) {
+    setFiles([...files, newFile]) // Update state only if successful
+  } else {
+    console.error("Failed to add file")
+  }
+}
+  
   const updateFile = (fileId: string, updates: Partial<File>) => {
     setFiles(files.map((file) => (file.id === fileId ? { ...file, ...updates } : file)))
 
