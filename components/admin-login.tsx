@@ -10,14 +10,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Lock, AlertCircle } from 'lucide-react'
 import { getAdmin } from '@/server-side/queries'
-
-const users = [
-  { username: "adminUser", password: "adminPass", role: "Admin" },
-  { username: "employeeUser", password: "employeePass", role: "Employee" },
-  { username: "hodAdminUser", password: "hodAdminPass", role: "HOD Admin" },
-  { username: "hrUser", password: "hrPass", role: "Human Resource" },
-  { username: "superAdminUser", password: "superAdminPass", role: "Super Admin" }
-];
+import { useContext } from 'react'
+import { UserContext } from '@/userContext/userContext'
 
 function getRedirectPath(role: any) {
   switch (role) {
@@ -44,15 +38,15 @@ export function AdminLoginComponent() {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const { setUserData } = useContext(UserContext)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     const admin = await getAdmin(username, password)
-    console.log(admin)
-
-    const user = users.find(u => u.username === username && u.password === password);
+  
     if (admin.success) {
+      setUserData(admin)
       router.push(getRedirectPath(admin.data));
     } else {
       setError('Invalid username or password. Please try again.')
