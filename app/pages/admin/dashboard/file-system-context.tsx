@@ -3,7 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { handleFileOperation } from "./file-system-server"
+import { handleFileOperation, fetchFilesByAdmin } from "./file-system-server"
 import { useRouter } from "next/navigation"
 
 export type FileType = "Open File" | "Secret File" | "Subject Matter" | "Temporary"
@@ -58,90 +58,42 @@ export const useFileSystem = () => {
   return context
 }
 
-// Sample data
-const initialFiles: File[] = [
-  {
-    id: "1",
-    fileNumber: "F-2023-001",
-    name: "Annual Budget Report",
-    type: "Open File",
-    dateCreated: new Date().toISOString(),
-    referenceNumber: "REF-001",
-    records: [
-      {
-        id: "101",
-        uniqueNumber: "R-101",
-        type: "Memo",
-        date: new Date().toISOString(),
-        from: "Finance Department",
-        to: "Executive Office",
-        subject: "Budget Allocation for Q1",
-        content: "Details of budget allocation for the first quarter of the fiscal year.",
-        status: "Active",
-        reference: "REF-101",
-        trackingNumber: "TRK-101",
-      },
-      {
-        id: "102",
-        uniqueNumber: "R-102",
-        type: "Report",
-        date: new Date().toISOString(),
-        from: "Accounting",
-        to: "Finance Department",
-        subject: "Q1 Expenditure Analysis",
-        content: "Analysis of expenditures for Q1 with recommendations for Q2.",
-        status: "Active",
-        reference: "REF-102",
-        trackingNumber: "TRK-102",
-      },
-    ],
-  },
-  {
-    id: "2",
-    fileNumber: "F-2023-002",
-    name: "HR Policies Update",
-    type: "Subject Matter",
-    dateCreated: new Date().toISOString(),
-    referenceNumber: "REF-002",
-    records: [
-      {
-        id: "201",
-        uniqueNumber: "R-201",
-        type: "Policy Document",
-        date: new Date().toISOString(),
-        from: "HR Department",
-        to: "All Staff",
-        subject: "Updated Leave Policy",
-        content: "Details of the updated leave policy effective from next month.",
-        status: "Active",
-        reference: "REF-201",
-        trackingNumber: "TRK-201",
-      },
-    ],
-  },
-]
-
 export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData?: any }> = ({ 
   children, 
   adminData: initialAdminData 
 }) => {
-  const [files, setFiles] = useState<File[]>(initialFiles)
+  const [files, setFiles] = useState<File[]>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedRecord, setSelectedRecord] = useState<Record | null>(null)
   const [adminData, setAdminData] = useState(initialAdminData)
   const router = useRouter()
 
-  // Store admin data in state when it changes
+  useEffect(() => {
+    const loadFiles = async () => {
+      if (adminData?.admin_id) {
+        const result = await fetchFilesByAdmin(adminData.admin_id)
+        if (result.success && result.data) {
+          setFiles(result.data.map(file => ({
+            ...file,
+            type: file.type as FileType
+          })))
+        } else {
+          console.error("Failed to load files:", result.error)
+        }
+      }
+    }
+
+    loadFiles()
+  }, [adminData])
+
   useEffect(() => {
     if (initialAdminData) {
       setAdminData(initialAdminData)
     }
   }, [initialAdminData])
 
-  // Check authentication immediately
   useEffect(() => {
     if (!adminData) {
-      // Redirect to login page immediately if not authenticated
       router.push("/pages/admins-login")
     }
   }, [adminData, router])
@@ -282,7 +234,6 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData
     }
   }
 
-  // Simply render the children if we haven't redirected yet
   return (
     <FileSystemContext.Provider
       value={{

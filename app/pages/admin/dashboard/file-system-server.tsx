@@ -160,3 +160,43 @@ export async function handleFileOperation(
     }
   }
 }
+
+export async function fetchFilesByAdmin(admin_id: string | number): Promise<{ success: boolean; data?: FileData[]; error?: string }> {
+  try {
+    const query = `
+      SELECT * FROM files_table 
+      WHERE admin_id = ?
+      ORDER BY dateCreated DESC
+    `
+
+    const [rows] = await pool.query(query, [admin_id])
+    
+    if (Array.isArray(rows)) {
+      return {
+        success: true,
+        data: rows.map((row: any) => ({
+          id: row.id,
+          fileNumber: row.fileNumber,
+          name: row.name,
+          type: row.type,
+          dateCreated: row.dateCreated.toISOString(),
+          referenceNumber: row.referenceNumber,
+          records: [] // Initially empty, you may want to fetch records separately
+        }))
+      }
+    }
+
+    return {
+      success: false,
+      error: "No files found"
+    }
+
+  } catch (error: any) {
+    console.error("Error fetching files:", error)
+    return {
+      success: false,
+      error: error?.message || "Failed to fetch files"
+    }
+  }
+}
+
