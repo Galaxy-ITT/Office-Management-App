@@ -26,6 +26,9 @@ export async function createAllTables() {
         dateCreated DATETIME NOT NULL,
         referenceNumber VARCHAR(50),
         admin_id INT NOT NULL,
+        username VARCHAR(240) NOT NULL,
+        email VARCHAR(240) NOT NULL,
+        role VARCHAR(240) NOT NULL,
         INDEX idx_admin_id (admin_id),
         FOREIGN KEY (admin_id) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT
       )
@@ -94,6 +97,9 @@ export async function table_files() {
         dateCreated DATETIME NOT NULL,
         referenceNumber VARCHAR(50),
         admin_id INT NOT NULL,
+        username VARCHAR(240) NOT NULL,
+        email VARCHAR(240) NOT NULL,
+        role VARCHAR(240) NOT NULL,
         INDEX idx_admin_id (admin_id),
         FOREIGN KEY (admin_id) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT
       )
