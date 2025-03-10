@@ -1,82 +1,120 @@
 "use client"
 
-import type React from "react"
 import { useState } from "react"
-import { useFileSystem, type FileType } from "./file-system-context"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { handleFileOperation } from "./file-system-server"
+import { useFileSystem, FileType } from "./file-system-context"
+import { useToast } from "@/hooks/use-toast"
 
 interface NewFileDialogProps {
   isOpen: boolean
   onClose: () => void
   onFileCreated?: () => void
-  adminData: any
 }
 
-export default function NewFileDialog({ isOpen, onClose, onFileCreated, adminData }: NewFileDialogProps) {
+export default function NewFileDialog({ isOpen, onClose, onFileCreated }: NewFileDialogProps) {
   const [fileName, setFileName] = useState("")
   const [fileType, setFileType] = useState<FileType>("Open File")
-  const { addFile } = useFileSystem()
+  const [isLoading, setIsLoading] = useState(false)
+  const { addFile, adminData } = useFileSystem()
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (fileName.trim()) {
-      addFile(fileName.trim(), fileType, adminData)
+    
+    if (!adminData) {
+      toast({
+        title: "Error",
+        description: "Authentication required. Please log in.",
+        variant: "destructive",
+      })
+      return
+    }
 
-      // Call server component
-      //const result = await handleFileOperation("admin123", "admin", true)
-      // console.log("Server response:", result)
+    if (!fileName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a file name",
+        variant: "destructive",
+      })
+      return
+    }
 
-      setFileName("")
-      onClose()
-      onFileCreated?.()
+    setIsLoading(true)
+    try {
+      const result = await addFile(fileName.trim(), fileType)
+      //@ts-ignore
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "File created successfully",
+        })
+        setFileName("")
+        onClose()
+        onFileCreated?.()
+      } else {
+        toast({
+          title: "Error",
+          //@ts-ignore
+          description: result.error || "Failed to create file",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New File</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="fileName">File Name</Label>
+          <div>
             <Input
-              id="fileName"
+              placeholder="File Name"
               value={fileName}
               onChange={(e) => setFileName(e.target.value)}
-              placeholder="Enter file name"
-              required
+              disabled={isLoading}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="fileType">File Type</Label>
-            <Select value={fileType} onValueChange={(value) => setFileType(value as FileType)}>
-              <SelectTrigger id="fileType">
+          <div>
+            <Select
+              value={fileType}
+              onValueChange={(value: FileType) => setFileType(value)}
+              disabled={isLoading}
+            >
+              <SelectTrigger>
                 <SelectValue placeholder="Select file type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Open File">Open Files</SelectItem>
-                <SelectItem value="Secret File">Secret Files - Govt Copy</SelectItem>
-                <SelectItem value="Subject Matter">Subject Matter - AOB</SelectItem>
+                <SelectItem value="Open File">Open File</SelectItem>
+                <SelectItem value="Secret File">Secret File</SelectItem>
+                <SelectItem value="Subject Matter">Subject Matter</SelectItem>
                 <SelectItem value="Temporary">Temporary</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit">Create File</Button>
-          </DialogFooter>
+            <Button type="submit" disabled={isLoading || !adminData}>
+              {isLoading ? "Creating..." : "Create"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
   )
 }
-

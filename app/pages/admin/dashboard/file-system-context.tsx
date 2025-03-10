@@ -45,6 +45,7 @@ interface FileSystemContextType {
   addRecord: (fileId: string, record: Omit<Record, "id" | "uniqueNumber">) => void
   updateRecord: (fileId: string, recordId: string, updates: Partial<Record>) => void
   deleteRecord: (fileId: string, recordId: string) => void
+  adminData?: any
 }
 
 const FileSystemContext = createContext<FileSystemContextType | undefined>(undefined)
@@ -122,12 +123,20 @@ const initialFiles: File[] = [
 
 export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData?: any }> = ({ 
   children, 
-  adminData 
+  adminData: initialAdminData 
 }) => {
   const [files, setFiles] = useState<File[]>(initialFiles)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedRecord, setSelectedRecord] = useState<Record | null>(null)
+  const [adminData, setAdminData] = useState(initialAdminData)
   const router = useRouter()
+
+  // Store admin data in state when it changes
+  useEffect(() => {
+    if (initialAdminData) {
+      setAdminData(initialAdminData)
+    }
+  }, [initialAdminData])
 
   // Check authentication immediately
   useEffect(() => {
@@ -147,11 +156,11 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData
   }
   
   const addFile = async (name: string, type: FileType) => {
-    // Check if user is authenticated
     if (!adminData) {
-      console.error("Authentication required")
-      router.push("/pages/admins-login")
-      return false
+      return {
+        success: false,
+        error: "Authentication required"
+      }
     }
     
     const newFile = {
@@ -164,21 +173,22 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData
       records: [],
     }
 
-    // Use adminData from props
-    const admin_id = adminData?.admin_id;
-    const username = adminData?.name;
-    const role = adminData?.role;
-    const email = adminData?.email;
-    
-    const success = await handleFileOperation(newFile, admin_id, username, email,role, true, false, false)
+    const result = await handleFileOperation(
+      newFile,
+      adminData.admin_id,
+      adminData.name,
+      adminData.email,
+      adminData.role,
+      true,
+      false,
+      false
+    )
 
-    if (success) {
-      setFiles([...files, newFile]) // Update state only if successful
-      return true
-    } else {
-      console.error("Failed to add file")
-      return false
+    if (result.success) {
+      setFiles([...files, newFile])
     }
+    
+    return result
   }
   
   const updateFile = (fileId: string, updates: Partial<File>) => {
@@ -287,6 +297,7 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData
         addRecord,
         updateRecord,
         deleteRecord,
+        adminData,
       }}
     >
       {children}

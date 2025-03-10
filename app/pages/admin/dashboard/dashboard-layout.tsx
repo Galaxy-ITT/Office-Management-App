@@ -85,7 +85,6 @@ export default function DashboardLayout({ adminData }: { adminData: any }) {
         isOpen={isNewFileDialogOpen}
         onClose={() => setIsNewFileDialogOpen(false)}
         onFileCreated={handleFileCreated}
-        adminData={adminData}
       />
     </SidebarProvider>
   )
