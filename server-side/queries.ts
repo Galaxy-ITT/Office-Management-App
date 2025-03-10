@@ -25,7 +25,12 @@ export async function getAdmin(username: string, password: string) {
       return {
         success: true,
         isAdmin: true,
-        data: rows[0].role, // Return the admin data if needed
+        data: {
+          admin_id: rows[0].admin_id,
+          name: rows[0].name,
+          role: rows[0].role,
+          email: rows[0].email
+        }, // Return multiple admin fields
       };
     }
 
