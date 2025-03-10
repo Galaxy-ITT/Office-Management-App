@@ -1,6 +1,7 @@
 // Server-side function
 "use server"
 import pool from "@/app/database/connection"
+import { RowDataPacket, FieldPacket } from "mysql2"
 
 interface FileData {
   id: string
@@ -10,6 +11,36 @@ interface FileData {
   dateCreated: string
   referenceNumber: string
   records: any[]
+}
+
+async function getNextIdentifiers(): Promise<{ fileNumber: string, referenceNumber: string }> {
+  // Get the latest numbers from the database
+  const [lastEntry] = await pool.query(
+    'SELECT fileNumber, referenceNumber FROM files_table ORDER BY id DESC LIMIT 1'
+  ) as [RowDataPacket[], FieldPacket[]];
+
+  let nextFileNum = 1;
+  let nextRefNum = 1;
+
+  if (Array.isArray(lastEntry) && lastEntry.length > 0) {
+    // Extract numbers from last file number (FIL-01 -> 1)
+    const lastFileMatch = lastEntry[0].fileNumber.match(/\d+/);
+    if (lastFileMatch) {
+      nextFileNum = parseInt(lastFileMatch[0]) + 1;
+    }
+
+    // Extract numbers from last reference number (REF-01 -> 1)
+    const lastRefMatch = lastEntry[0].referenceNumber.match(/\d+/);
+    if (lastRefMatch) {
+      nextRefNum = parseInt(lastRefMatch[0]) + 1;
+    }
+  }
+
+  // Format new numbers with padding
+  const fileNumber = `FIL-${nextFileNum.toString().padStart(2, '0')}`;
+  const referenceNumber = `REF-${nextRefNum.toString().padStart(2, '0')}`;
+
+  return { fileNumber, referenceNumber };
 }
 
 export async function handleFileOperation(
@@ -23,18 +54,13 @@ export async function handleFileOperation(
   delete_op = false
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // ADD operation
     if (add) {
-      console.log("File Data:", fileData)
-      console.log("Admin ID:", admin_id)
-      console.log("Username:", username)
-      console.log("Email:", email)
-      console.log("Role:", role)
-      console.log("Add:", add)
-      console.log("Update:", update)
-      console.log("Delete:", delete_op)
+      // Generate new identifiers based on last entries
+      const { fileNumber, referenceNumber } = await getNextIdentifiers();
+      fileData.fileNumber = fileNumber;
+      fileData.referenceNumber = referenceNumber;
 
-      // Create an array to store missing field names
+      // Continue with the existing validation and insertion logic
       const missingFields = []
 
       // Check each required field and add to missingFields if missing
