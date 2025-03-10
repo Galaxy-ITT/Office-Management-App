@@ -165,10 +165,12 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData
     }
 
     // Use adminData from props
-    const admin_id = adminData?.admin_id || "unknown";
-    const username = adminData?.name || "unknown";
+    const admin_id = adminData?.admin_id;
+    const username = adminData?.name;
+    const role = adminData?.role;
+    const email = adminData?.email;
     
-    const success = await handleFileOperation(newFile, admin_id, username, true, false, false)
+    const success = await handleFileOperation(newFile, admin_id, username, email,role, true, false, false)
 
     if (success) {
       setFiles([...files, newFile]) // Update state only if successful

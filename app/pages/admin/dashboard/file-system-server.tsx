@@ -5,6 +5,8 @@ export async function handleFileOperation(
   fileData: any, // Change parameter type from FormData to any
   admin_id: string,
   username: string,
+  email: string,
+  role: string,
   add = true,
   update = false,
   delete_op = false
@@ -16,6 +18,8 @@ export async function handleFileOperation(
     fileData,
     admin_id,
     username,
+    email,
+    role,
     operation: add ? "add" : update ? "update" : delete_op ? "delete" : "unknown",
     timestamp: new Date().toISOString(),
   })
