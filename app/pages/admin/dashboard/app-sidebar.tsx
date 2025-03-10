@@ -20,9 +20,10 @@ import {
 
 interface AppSidebarProps {
   onMenuSelect: (menu: string) => void
+  adminName: string
 }
 
-export function AppSidebar({ onMenuSelect }: AppSidebarProps) {
+export function AppSidebar({ onMenuSelect, adminName }: AppSidebarProps) {
   const router = useRouter()
   const { toast } = useToast()
   const currentDate = new Date().toLocaleDateString("en-US", {
@@ -31,6 +32,15 @@ export function AppSidebar({ onMenuSelect }: AppSidebarProps) {
     month: "long",
     day: "numeric",
   })
+
+  // Add function to get initials from admin name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+  }
 
   const handleLogout = () => {
   
@@ -45,10 +55,10 @@ export function AppSidebar({ onMenuSelect }: AppSidebarProps) {
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarImage src="/placeholder.svg?height=32&width=32" alt="Avatar" />
-            <AvatarFallback>RA</AvatarFallback>
+            <AvatarFallback>{getInitials(adminName)}</AvatarFallback>
           </Avatar>
           <div className="space-y-1">
-            <h2 className="text-sm font-semibold">Registry Admin</h2>
+            <h2 className="text-sm font-semibold">Welcome, <br></br> {adminName}!</h2>
             <p className="text-xs text-muted-foreground">{currentDate}</p>
           </div>
         </div>

@@ -75,7 +75,7 @@ export default function DashboardLayout({ adminData }: { adminData: any }) {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen bg-background">
-        <AppSidebar onMenuSelect={handleMenuSelect} />
+        <AppSidebar onMenuSelect={handleMenuSelect} adminName={adminData.name} />
         <SidebarInset className="flex-1">
           <main className="flex-1 p-6">{renderActiveView()}</main>
         </SidebarInset>
