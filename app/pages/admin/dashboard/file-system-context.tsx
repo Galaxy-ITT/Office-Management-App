@@ -1,9 +1,10 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useState, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { handleFileOperation } from "./file-system-server"
+import { useRouter } from "next/navigation"
 
 export type FileType = "Open File" | "Secret File" | "Subject Matter" | "Temporary"
 
@@ -38,7 +39,7 @@ interface FileSystemContextType {
   selectedRecord: Record | null
   selectFile: (file: File | null) => void
   selectRecord: (record: Record | null) => void
-  addFile: (name: string, type: FileType) => void
+  addFile: (name: string, type: FileType, adminData?: any) => void
   updateFile: (fileId: string, updates: Partial<File>) => void
   deleteFile: (fileId: string) => void
   addRecord: (fileId: string, record: Omit<Record, "id" | "uniqueNumber">) => void
@@ -119,10 +120,22 @@ const initialFiles: File[] = [
   },
 ]
 
-export const FileSystemProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData?: any }> = ({ 
+  children, 
+  adminData 
+}) => {
   const [files, setFiles] = useState<File[]>(initialFiles)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedRecord, setSelectedRecord] = useState<Record | null>(null)
+  const router = useRouter()
+
+  // Check authentication immediately
+  useEffect(() => {
+    if (!adminData) {
+      // Redirect to login page immediately if not authenticated
+      router.push("/pages/admins-login")
+    }
+  }, [adminData, router])
 
   const selectFile = (file: File | null) => {
     setSelectedFile(file)
@@ -133,27 +146,38 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setSelectedRecord(record)
   }
   
-  // Client-side function
-const addFile = async (name: string, type: FileType) => {
-  const newFile = {
-    id: uuidv4(),
-    fileNumber: `F-${new Date().getFullYear()}-${String(files.length + 1).padStart(3, "0")}`,
-    name,
-    type,
-    dateCreated: new Date().toISOString(),
-    referenceNumber: `REF-${String(files.length + 1).padStart(3, "0")}`,
-    records: [],
-  }
+  const addFile = async (name: string, type: FileType) => {
+    // Check if user is authenticated
+    if (!adminData) {
+      console.error("Authentication required")
+      router.push("/pages/admins-login")
+      return false
+    }
+    
+    const newFile = {
+      id: uuidv4(),
+      fileNumber: `F-${new Date().getFullYear()}-${String(files.length + 1).padStart(3, "0")}`,
+      name,
+      type,
+      dateCreated: new Date().toISOString(),
+      referenceNumber: `REF-${String(files.length + 1).padStart(3, "0")}`,
+      records: [],
+    }
 
-  // Instead of using FormData, pass the object directly
-  const success = await handleFileOperation(newFile, "admin01", "admin01", true, false, false)
+    // Use adminData from props
+    const admin_id = adminData?.admin_id || "unknown";
+    const username = adminData?.name || "unknown";
+    
+    const success = await handleFileOperation(newFile, admin_id, username, true, false, false)
 
-  if (success) {
-    setFiles([...files, newFile]) // Update state only if successful
-  } else {
-    console.error("Failed to add file")
+    if (success) {
+      setFiles([...files, newFile]) // Update state only if successful
+      return true
+    } else {
+      console.error("Failed to add file")
+      return false
+    }
   }
-}
   
   const updateFile = (fileId: string, updates: Partial<File>) => {
     setFiles(files.map((file) => (file.id === fileId ? { ...file, ...updates } : file)))
@@ -246,6 +270,7 @@ const addFile = async (name: string, type: FileType) => {
     }
   }
 
+  // Simply render the children if we haven't redirected yet
   return (
     <FileSystemContext.Provider
       value={{

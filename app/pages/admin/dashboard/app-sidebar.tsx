@@ -33,11 +33,10 @@ export function AppSidebar({ onMenuSelect }: AppSidebarProps) {
   })
 
   const handleLogout = () => {
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    })
-    router.push("/")
+  
+    sessionStorage.clear()
+    // Redirect to login page
+    router.push("/pages/admins-login")
   }
 
   return (

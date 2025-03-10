@@ -13,7 +13,7 @@ import RecentActivitiesView from "./views/recent-activities-view"
 import UsersView from "./views/users-view"
 import NewFileDialog from "./new-file-dialog"
 
-export default function DashboardLayout() {
+export default function DashboardLayout({ adminData }: { adminData: any }) {
   const [activeView, setActiveView] = useState("Files")
   const [isNewFileDialogOpen, setIsNewFileDialogOpen] = useState(false)
   const { toast } = useToast()
@@ -25,17 +25,17 @@ export default function DashboardLayout() {
     let result
     switch (menu) {
       case "Create New File":
-        result = await handleFileOperation("admin123", "admin", true)
+      //  result = await handleFileOperation("admin123", "admin", true)
         setIsNewFileDialogOpen(true)
         break
       case "Open Files":
-        result = await handleFileOperation("admin123", "admin", false, false, false)
+      //  result = await handleFileOperation("admin123", "admin", false, false, false)
         break
       case "Recent Activities":
-        result = await handleFileOperation("admin123", "admin", false, true, false)
+        // result = await handleFileOperation("admin123", "admin", false, true, false)
         break
       default:
-        result = await handleFileOperation("admin123", "admin", false, false, false)
+       // result = await handleFileOperation("admin123", "admin", false, false, false)
     }
 
     console.log("Server response for menu:", menu, result)
@@ -85,6 +85,7 @@ export default function DashboardLayout() {
         isOpen={isNewFileDialogOpen}
         onClose={() => setIsNewFileDialogOpen(false)}
         onFileCreated={handleFileCreated}
+        adminData={adminData}
       />
     </SidebarProvider>
   )

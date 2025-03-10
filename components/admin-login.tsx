@@ -44,10 +44,10 @@ export function AdminLoginComponent() {
     e.preventDefault()
     setError('')
     const admin = await getAdmin(username, password)
-  
+    console.log(admin)
     if (admin.success) {
       setUserData(admin)
-      router.push(getRedirectPath(admin.data));
+      router.push(getRedirectPath(admin.data?.role));
     } else {
       setError('Invalid username or password. Please try again.')
     }

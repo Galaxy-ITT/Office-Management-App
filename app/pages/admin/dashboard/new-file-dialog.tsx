@@ -14,9 +14,10 @@ interface NewFileDialogProps {
   isOpen: boolean
   onClose: () => void
   onFileCreated?: () => void
+  adminData: any
 }
 
-export default function NewFileDialog({ isOpen, onClose, onFileCreated }: NewFileDialogProps) {
+export default function NewFileDialog({ isOpen, onClose, onFileCreated, adminData }: NewFileDialogProps) {
   const [fileName, setFileName] = useState("")
   const [fileType, setFileType] = useState<FileType>("Open File")
   const { addFile } = useFileSystem()
@@ -24,10 +25,10 @@ export default function NewFileDialog({ isOpen, onClose, onFileCreated }: NewFil
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (fileName.trim()) {
-      addFile(fileName.trim(), fileType)
+      addFile(fileName.trim(), fileType, adminData)
 
       // Call server component
-      // const result = await handleFileOperation("admin123", "admin", true)
+      //const result = await handleFileOperation("admin123", "admin", true)
       // console.log("Server response:", result)
 
       setFileName("")
