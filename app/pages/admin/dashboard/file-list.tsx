@@ -10,6 +10,7 @@ interface FileListProps {
 }
 
 export default function FileList({ files, onSelectFile }: FileListProps) {
+  console.log(files)
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {files.map((file) => (
@@ -32,12 +33,14 @@ export default function FileList({ files, onSelectFile }: FileListProps) {
               <span>Reference: {file.referenceNumber}</span>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-between text-sm text-muted-foreground">
-            <div className="flex items-center">
+          <CardFooter className="flex flex-col space-y-2 text-sm text-muted-foreground">
+            <div className="flex items-left">
               <Clock className="mr-1 h-4 w-4" />
               <span>{new Date(file.dateCreated).toLocaleDateString()}</span>
             </div>
-            <span>{file.records.length} Records</span>
+            <div className="flex items-left">
+              <span>{file.records.length} Records</span>
+            </div>
           </CardFooter>
         </Card>
       ))}

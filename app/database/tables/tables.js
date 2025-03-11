@@ -50,6 +50,10 @@ export async function createAllTables() {
         status VARCHAR(50) NOT NULL,
         reference VARCHAR(50),
         trackingNumber VARCHAR(50),
+        attachmentUrl VARCHAR(255),
+        attachmentName VARCHAR(255),
+        attachmentSize INT,
+        attachmentType VARCHAR(100),
         FOREIGN KEY (file_id) REFERENCES files_table(id) ON DELETE CASCADE,
         INDEX idx_file_id (file_id)
       )
@@ -121,6 +125,10 @@ export async function table_files() {
         status VARCHAR(50) NOT NULL,
         reference VARCHAR(50),
         trackingNumber VARCHAR(50),
+        attachmentUrl VARCHAR(255),
+        attachmentName VARCHAR(255),
+        attachmentSize INT,
+        attachmentType VARCHAR(100),
         FOREIGN KEY (file_id) REFERENCES files_table(id) ON DELETE CASCADE,
         INDEX idx_file_id (file_id)
       )

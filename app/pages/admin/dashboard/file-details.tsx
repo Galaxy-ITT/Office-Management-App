@@ -23,8 +23,6 @@ export default function FileDetails({ file }: FileDetailsProps) {
 
   const handleAddRecord = async () => {
     setIsNewRecordDialogOpen(true)
-    const result = await handleFileOperation("admin123", "admin", true)
-    console.log("Server response:", result)
   }
 
   const handleRecordCreated = () => {
@@ -33,6 +31,8 @@ export default function FileDetails({ file }: FileDetailsProps) {
       description: "The new record has been added to the file.",
     })
   }
+
+  console.log(file)
 
   return (
     <div className="space-y-6">

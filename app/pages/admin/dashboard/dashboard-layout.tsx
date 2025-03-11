@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { redirect } from "next/navigation"
 import { AppSidebar } from "./app-sidebar"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { useToast } from "@/hooks/use-toast"
@@ -14,10 +15,15 @@ import UsersView from "./views/users-view"
 import NewFileDialog from "./new-file-dialog"
 
 export default function DashboardLayout({ adminData }: { adminData: any }) {
+  if (!adminData) {
+    redirect("/pages/admins-login")
+  }
+
   const [activeView, setActiveView] = useState("Files")
   const [isNewFileDialogOpen, setIsNewFileDialogOpen] = useState(false)
   const { toast } = useToast()
 
+  
   const handleMenuSelect = async (menu: string) => {
     setActiveView(menu)
 
