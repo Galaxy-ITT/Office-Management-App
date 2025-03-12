@@ -13,6 +13,7 @@ import OpenFilesView from "./views/open-files-view"
 import RecentActivitiesView from "./views/recent-activities-view"
 import UsersView from "./views/users-view"
 import NewFileDialog from "./new-file-dialog"
+import ForwardedRecords from "./forwarded-records"
 
 export default function DashboardLayout({ adminData }: { adminData: any }) {
   if (!adminData) {
@@ -73,6 +74,8 @@ export default function DashboardLayout({ adminData }: { adminData: any }) {
         return <RecentActivitiesView />
       case "Users":
         return <UsersView />
+      case "Forwarded Records":
+        return <ForwardedRecords />
       default:
         return <FilesView />
     }

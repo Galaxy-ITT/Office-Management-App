@@ -6,8 +6,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Trash2, X, Save } from "lucide-react"
-import { handleFileOperation } from "./file-system-server"
+import { Pencil, Trash2, X, Save, Send, FileText, Calendar, User, Tag, Paperclip } from "lucide-react"
+import { handleFileOperation, handleForwardRecord } from "./file-system-server"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -22,6 +22,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface RecordDetailsProps {
   record: Record
@@ -29,19 +37,21 @@ interface RecordDetailsProps {
 }
 
 export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
-  const { selectRecord, deleteRecord, updateRecord } = useFileSystem()
+  const { selectRecord, deleteRecord, updateRecord, adminData } = useFileSystem()
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isForwardDialogOpen, setIsForwardDialogOpen] = useState(false)
+  const [forwardTo, setForwardTo] = useState("")
+  const [forwardRecipient, setForwardRecipient] = useState("boss")
+  const [forwardNotes, setForwardNotes] = useState("")
   const { toast } = useToast()
 
   // Edit state
   const [editedRecord, setEditedRecord] = useState<Record>({ ...record })
+  const [isForwarding, setIsForwarding] = useState(false)
 
   const handleDelete = async () => {
     // Call server component
-    const result = await handleFileOperation("admin123", "admin", false, false, true)
-    console.log("Server response:", result)
-
     deleteRecord(fileId, record.id)
     selectRecord(null)
 
@@ -57,10 +67,6 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
   }
 
   const handleSave = async () => {
-    // Call server component
-    const result = await handleFileOperation("admin123", "admin", false, true)
-    console.log("Server response:", result)
-
     updateRecord(fileId, record.id, editedRecord)
     setIsEditing(false)
 
@@ -74,9 +80,81 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
     setIsEditing(false)
   }
 
+  const handleForward = () => {
+    setIsForwardDialogOpen(true)
+  }
+
+  const handleForwardSubmit = async () => {
+    if (!adminData?.admin_id) {
+      toast({
+        title: "Error",
+        description: "Admin information not available. Please try again.",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    setIsForwarding(true)
+    
+    try {
+      // Determine recipient name based on selection
+      let recipientName = forwardTo
+      if (forwardRecipient !== "other") {
+        recipientName = forwardRecipient
+      }
+      
+      // Call API to forward record
+      const result = await handleForwardRecord(
+        record.id,
+        fileId,
+        adminData.admin_id,
+        forwardRecipient,
+        recipientName,
+        forwardNotes
+      )
+      
+      if (result.success) {
+        // Update local record status
+        const updatedRecord = {
+          ...record,
+          status: "Forwarded"
+        }
+        
+        // Update in context
+        updateRecord(fileId, record.id, updatedRecord)
+        
+        toast({
+          title: "Record Forwarded",
+          description: `Record has been forwarded to ${recipientName}.`,
+        })
+        
+        // Reset form
+        setIsForwardDialogOpen(false)
+        setForwardTo("")
+        setForwardNotes("")
+        setForwardRecipient("boss")
+      } else {
+        toast({
+          title: "Forwarding Failed",
+          description: result.error || "An error occurred while forwarding the record.",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error forwarding record:", error)
+      toast({
+        title: "Forwarding Failed",
+        description: "An unexpected error occurred.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsForwarding(false)
+    }
+  }
+
   return (
     <>
-      <Card>
+      <Card className="border-t-4" style={{ borderTopColor: getStatusColor(record.status) }}>
         <CardHeader className="relative pb-2">
           <Button variant="ghost" size="icon" className="absolute right-2 top-2" onClick={() => selectRecord(null)}>
             <X className="h-4 w-4" />
@@ -89,9 +167,9 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
                 <Badge variant="outline">{record.type}</Badge>
               </div>
               <CardTitle className="text-xl mt-2">{record.subject}</CardTitle>
-              <CardDescription>
-                <span className="font-medium">{record.uniqueNumber}</span> •{" "}
-                {new Date(record.date).toLocaleDateString()}
+              <CardDescription className="flex items-center gap-3">
+                <span className="font-medium">{record.trackingNumber}</span> •{" "}
+                <span className="flex items-center"><Calendar className="h-3 w-3 mr-1" /> {new Date(record.date).toLocaleDateString()}</span>
               </CardDescription>
             </>
           ) : (
@@ -101,39 +179,86 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
         <CardContent>
           {!isEditing ? (
             <>
-              <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 mb-4 text-sm border-b pb-4">
                 <div>
-                  <p className="text-muted-foreground">From:</p>
+                  <p className="text-muted-foreground flex items-center mb-1">
+                    <User className="h-3 w-3 mr-1" /> From:
+                  </p>
                   <p className="font-medium">{record.from}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">To:</p>
+                  <p className="text-muted-foreground flex items-center mb-1">
+                    <User className="h-3 w-3 mr-1" /> To:
+                  </p>
                   <p className="font-medium">{record.to}</p>
                 </div>
               </div>
 
-              <div className="mb-4">
-                <p className="text-muted-foreground text-sm mb-1">Content:</p>
-                <div className="p-4 bg-muted/30 rounded-md whitespace-pre-wrap">
+              <div className="mb-6">
+                <p className="text-muted-foreground text-sm mb-2 flex items-center">
+                  <FileText className="h-3 w-3 mr-1" /> Content:
+                </p>
+                <div className="p-4 bg-muted/20 rounded-md whitespace-pre-wrap border">
                   {record.content || "No content provided."}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 text-sm border-t pt-4">
                 <div>
-                  <p className="text-muted-foreground">Reference:</p>
-                  <p className="font-medium">{record.reference}</p>
+                  <p className="text-muted-foreground flex items-center mb-1">
+                    <Tag className="h-3 w-3 mr-1" /> Reference:
+                  </p>
+                  <p className="font-medium">{record.reference || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Tracking Number:</p>
+                  <p className="text-muted-foreground flex items-center mb-1">
+                    <Tag className="h-3 w-3 mr-1" /> Tracking Number:
+                  </p>
                   <p className="font-medium">{record.trackingNumber}</p>
                 </div>
               </div>
 
               {record.attachmentUrl && (
-                <div className="mt-4 p-3 border rounded-md">
-                  <p className="text-muted-foreground text-sm mb-1">Attachment:</p>
-                  <p className="text-sm font-medium">{record.attachmentUrl}</p>
+                <div className="mt-4 p-4 border rounded-md bg-muted/10">
+                  <p className="text-muted-foreground text-sm mb-2 flex items-center">
+                    <Paperclip className="h-3 w-3 mr-1" /> Attachment:
+                  </p>
+                  
+                  {record.attachmentType?.startsWith('image/') ? (
+                    <div className="mt-2">
+                      <img 
+                        src={record.attachmentUrl} 
+                        alt={record.attachmentName || 'Attachment'}
+                        className="max-h-64 rounded-md border mx-auto"
+                      />
+                      <p className="text-xs text-center mt-2 text-muted-foreground">
+                        {record.attachmentName} {record.attachmentSize && `(${formatFileSize(record.attachmentSize)})`}
+                      </p>
+                    </div>
+                  ) : record.attachmentType?.includes('pdf') ? (
+                    <div className="mt-2">
+                      <embed 
+                        src={record.attachmentUrl}
+                        type="application/pdf"
+                        className="w-full h-64 border"
+                      />
+                      <p className="text-xs text-center mt-2 text-muted-foreground">
+                        {record.attachmentName} {record.attachmentSize && `(${formatFileSize(record.attachmentSize)})`}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center p-2 bg-background border rounded">
+                      <Paperclip className="h-4 w-4 mr-2" />
+                      <span>
+                        {record.attachmentName}
+                        {record.attachmentSize && (
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            ({formatFileSize(record.attachmentSize)})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -237,15 +362,20 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-end gap-2">
+        <CardFooter className="flex justify-between gap-2">
           {!isEditing ? (
             <>
-              <Button variant="outline" size="sm" onClick={handleEdit}>
-                <Pencil className="mr-2 h-4 w-4" /> Edit
+              <Button variant="outline" size="sm" onClick={handleForward}>
+                <Send className="mr-2 h-4 w-4" /> Forward
               </Button>
-              <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-              </Button>
+              <div>
+                <Button variant="outline" size="sm" onClick={handleEdit} className="mr-2">
+                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Button>
+              </div>
             </>
           ) : (
             <>
@@ -276,6 +406,78 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isForwardDialogOpen} onOpenChange={setIsForwardDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Forward Record</DialogTitle>
+            <DialogDescription>
+              Forward this record to another person or department.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="forward-recipient">Forward to</Label>
+              <Select 
+                value={forwardRecipient}
+                onValueChange={setForwardRecipient}
+              >
+                <SelectTrigger id="forward-recipient">
+                  <SelectValue placeholder="Select recipient" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="boss">Boss</SelectItem>
+                  <SelectItem value="department">Department</SelectItem>
+                  <SelectItem value="colleague">Colleague</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {forwardRecipient === "other" && (
+              <div className="space-y-2">
+                <Label htmlFor="forward-to">Recipient name</Label>
+                <Input 
+                  id="forward-to" 
+                  value={forwardTo}
+                  onChange={(e) => setForwardTo(e.target.value)}
+                  placeholder="Enter recipient name"
+                />
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="forward-notes">Notes (optional)</Label>
+              <Textarea 
+                id="forward-notes" 
+                value={forwardNotes}
+                onChange={(e) => setForwardNotes(e.target.value)}
+                placeholder="Add any notes about this forwarded record"
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsForwardDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleForwardSubmit} 
+              disabled={isForwarding || (forwardRecipient === "other" && !forwardTo)}
+            >
+              {isForwarding ? (
+                <>Processing...</>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" /> Forward
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
@@ -292,6 +494,33 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "outli
       return "destructive"
     default:
       return "default"
+  }
+}
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "Active":
+      return "hsl(142.1 76.2% 36.3%)" // green
+    case "Pending":
+      return "hsl(221.2 83.2% 53.3%)" // blue
+    case "Archived":
+      return "hsl(215.4 16.3% 46.9%)" // gray
+    case "Urgent":
+      return "hsl(0 84.2% 60.2%)" // red
+    default:
+      return "hsl(142.1 76.2% 36.3%)" // green
+  }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) {
+    return bytes + " B"
+  } else if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(2) + " KB"
+  } else if (bytes < 1024 * 1024 * 1024) {
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB"
+  } else {
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB"
   }
 }
 

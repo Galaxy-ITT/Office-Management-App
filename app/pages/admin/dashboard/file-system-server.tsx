@@ -2,6 +2,7 @@
 "use server"
 import pool from "@/app/database/connection"
 import { RowDataPacket, FieldPacket } from "mysql2"
+import { v4 as uuidv4 } from "uuid"
 
 
 interface FileData {
@@ -31,6 +32,19 @@ interface RecordData {
   attachmentName?: string | null
   attachmentSize?: number | null
   attachmentType?: string | null
+}
+
+// Add a new type for forwarded records
+export interface ForwardedRecord {
+  forward_id: string;
+  record_id: string;
+  file_id: string;
+  forwarded_by: number;
+  forwarded_to: string;
+  recipient_type: string;
+  notes?: string;
+  forward_date: string;
+  status: string;
 }
 
 async function getNextIdentifiers(): Promise<{ fileNumber: string, referenceNumber: string }> {
@@ -404,28 +418,28 @@ export async function fetchRecordsByFileId(fileId: string): Promise<{ success: b
       ORDER BY date DESC
     `;
 
-    const [rows] = await pool.query(query, [fileId]) as [RowDataPacket[], FieldPacket[]];
+    const [records] = await pool.query(query, [fileId]) as [RowDataPacket[], FieldPacket[]];
     
-    if (Array.isArray(rows)) {
+    if (Array.isArray(records)) {
       return {
         success: true,
-        data: rows.map(row => ({
-          id: row.id,
-          file_id: row.file_id,
-          uniqueNumber: row.uniqueNumber,
-          type: row.type,
-          date: row.date.toISOString(),
-          from: row.from,
-          to: row.to,
-          subject: row.subject,
-          content: row.content,
-          status: row.status,
-          reference: row.reference,
-          trackingNumber: row.trackingNumber,
-          attachmentUrl: row.attachmentUrl,
-          attachmentName: row.attachmentName,
-          attachmentSize: row.attachmentSize,
-          attachmentType: row.attachmentType
+        data: records.map(record => ({
+          id: record.id,
+          file_id: record.file_id,
+          uniqueNumber: record.uniqueNumber,
+          type: record.type,
+          date: record.date.toISOString(),
+          from: record.from,
+          to: record.to,
+          subject: record.subject,
+          content: record.content,
+          status: record.status,
+          reference: record.reference,
+          trackingNumber: record.trackingNumber,
+          attachmentUrl: record.attachmentUrl,
+          attachmentName: record.attachmentName,
+          attachmentSize: record.attachmentSize,
+          attachmentType: record.attachmentType
         }))
       };
     }
@@ -434,11 +448,136 @@ export async function fetchRecordsByFileId(fileId: string): Promise<{ success: b
       success: false,
       error: "No records found"
     };
+
   } catch (error: any) {
     console.error("Error fetching records:", error);
     return {
       success: false,
       error: error?.message || "Failed to fetch records"
+    };
+  }
+}
+
+export async function handleForwardRecord(
+  recordId: string,
+  fileId: string,
+  adminId: number,
+  recipientType: string,
+  recipientName: string,
+  notes?: string
+): Promise<{ success: boolean; error?: string; data?: ForwardedRecord }> {
+  try {
+    // Create a new forward record
+    const forwardId = uuidv4();
+    const forwardQuery = `
+      INSERT INTO forwarded_records 
+      (forward_id, record_id, file_id, forwarded_by, forwarded_to, recipient_type, notes, forward_date, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'Pending')
+    `;
+    
+    await pool.query(forwardQuery, [
+      forwardId,
+      recordId,
+      fileId,
+      adminId,
+      recipientName,
+      recipientType,
+      notes || null
+    ]);
+    
+    // Update the record status to "Forwarded"
+    const updateQuery = `
+      UPDATE records_table 
+      SET status = 'Forwarded' 
+      WHERE id = ?
+    `;
+    
+    await pool.query(updateQuery, [recordId]);
+    
+    // Fetch the newly created forward record
+    const [forwardedRecords] = await pool.query(
+      'SELECT * FROM forwarded_records WHERE forward_id = ?',
+      [forwardId]
+    ) as [RowDataPacket[], FieldPacket[]];
+    
+    if (Array.isArray(forwardedRecords) && forwardedRecords.length > 0) {
+      const forwardedRecord = forwardedRecords[0];
+      return {
+        success: true,
+        data: {
+          forward_id: forwardedRecord.forward_id,
+          record_id: forwardedRecord.record_id,
+          file_id: forwardedRecord.file_id,
+          forwarded_by: forwardedRecord.forwarded_by,
+          forwarded_to: forwardedRecord.forwarded_to,
+          recipient_type: forwardedRecord.recipient_type,
+          notes: forwardedRecord.notes,
+          forward_date: forwardedRecord.forward_date.toISOString(),
+          status: forwardedRecord.status
+        }
+      };
+    }
+    
+    return { success: true };
+    
+  } catch (error: any) {
+    console.error("Error forwarding record:", error);
+    return {
+      success: false,
+      error: error?.sqlMessage || error?.message || "An unexpected error occurred"
+    };
+  }
+}
+
+// Fetch forwarded records for a specific admin
+export async function fetchForwardedRecords(adminId: number): Promise<{ success: boolean; data?: ForwardedRecord[]; error?: string }> {
+  try {
+    const query = `
+      SELECT fr.*, r.subject, r.type, r.trackingNumber, r.date, r.from, r.to, f.name as fileName
+      FROM forwarded_records fr
+      JOIN records_table r ON fr.record_id = r.id
+      JOIN files_table f ON fr.file_id = f.id
+      WHERE fr.forwarded_by = ?
+      ORDER BY fr.forward_date DESC
+    `;
+    
+    const [records] = await pool.query(query, [adminId]) as [RowDataPacket[], FieldPacket[]];
+    
+    if (Array.isArray(records)) {
+      return {
+        success: true,
+        data: records.map(record => ({
+          forward_id: record.forward_id,
+          record_id: record.record_id,
+          file_id: record.file_id,
+          forwarded_by: record.forwarded_by,
+          forwarded_to: record.forwarded_to,
+          recipient_type: record.recipient_type,
+          notes: record.notes,
+          forward_date: record.forward_date.toISOString(),
+          status: record.status,
+          // Additional record data for display
+          subject: record.subject,
+          type: record.type,
+          trackingNumber: record.trackingNumber,
+          date: record.date.toISOString(),
+          from: record.from,
+          to: record.to,
+          fileName: record.fileName
+        }))
+      };
+    }
+    
+    return {
+      success: false,
+      error: "No forwarded records found"
+    };
+    
+  } catch (error: any) {
+    console.error("Error fetching forwarded records:", error);
+    return {
+      success: false,
+      error: error?.message || "Failed to fetch forwarded records"
     };
   }
 }

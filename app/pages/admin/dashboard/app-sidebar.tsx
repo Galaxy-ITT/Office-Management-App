@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { FileText, FolderOpen, Home, LogOut, Users, PlusCircle, Clock, Search } from "lucide-react"
+import { FileText, FolderOpen, Home, LogOut, Users, PlusCircle, Clock, Search, Send } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -84,6 +84,12 @@ export function AppSidebar({ onMenuSelect, adminName }: AppSidebarProps) {
                 <SidebarMenuButton onClick={() => onMenuSelect("Search Records")}>
                   <Search className="h-4 w-4" />
                   <span>Search Records</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => onMenuSelect("Forwarded Records")}>
+                  <Send className="h-4 w-4" />
+                  <span>Forwarded Records</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

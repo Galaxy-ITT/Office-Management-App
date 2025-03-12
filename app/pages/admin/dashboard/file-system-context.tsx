@@ -49,7 +49,7 @@ interface FileSystemContextType {
   files: File[]
   selectedFile: File | null
   selectedRecord: Record | null
-  selectFile: (file: File | null) => void
+  selectFile: (file: File | null) => Promise<void>
   selectRecord: (record: Record | null) => void
   addFile: (name: string, type: FileType, adminData?: any) => void
   updateFile: (fileId: string, updates: Partial<File>) => void
@@ -114,10 +114,34 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData
     }
   }, [adminData, router])
 
-  const selectFile = (file: File | null) => {
-    setSelectedFile(file)
-    setSelectedRecord(null)
-  }
+  const selectFile = async (file: File | null) => {
+    if (file) {
+      // Fetch records for the selected file
+      const result = await fetchRecordsByFileId(file.id);
+      if (result.success && result.data) {
+        // Update the file with its records
+        const updatedFile = {
+          ...file,
+          records: result.data
+        };
+        
+        // Update the file in the files array
+        setFiles(files.map(f => 
+          f.id === file.id ? updatedFile : f
+        ));
+        
+        // Set the selected file with records
+        setSelectedFile(updatedFile);
+      } else {
+        // If no records found, still select the file but with empty records
+        setSelectedFile(file);
+        console.error("Failed to load records:", result.error);
+      }
+    } else {
+      setSelectedFile(null);
+    }
+    setSelectedRecord(null);
+  };
 
   const selectRecord = (record: Record | null) => {
     setSelectedRecord(record)

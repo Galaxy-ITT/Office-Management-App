@@ -60,6 +60,27 @@ export async function createAllTables() {
     `)
     console.log("records_table created successfully")
 
+    // Create forwarded_records table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS forwarded_records (
+        forward_id VARCHAR(36) PRIMARY KEY,
+        record_id VARCHAR(36) NOT NULL,
+        file_id VARCHAR(36) NOT NULL,
+        forwarded_by INT NOT NULL,
+        forwarded_to VARCHAR(255) NOT NULL,
+        recipient_type VARCHAR(50) NOT NULL,
+        notes TEXT,
+        forward_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(50) DEFAULT 'Pending',
+        FOREIGN KEY (record_id) REFERENCES records_table(id) ON DELETE CASCADE,
+        FOREIGN KEY (file_id) REFERENCES files_table(id) ON DELETE CASCADE,
+        FOREIGN KEY (forwarded_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        INDEX idx_record_id (record_id),
+        INDEX idx_forwarded_by (forwarded_by)
+      )
+    `)
+    console.log("forwarded_records table created successfully")
+
     return { success: true, message: "All tables created successfully" }
   } catch (error) {
     console.error("Error creating tables:", error)
@@ -134,6 +155,27 @@ export async function table_files() {
       )
     `)
     console.log("records_table created successfully")
+
+    // Create forwarded_records table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS forwarded_records (
+        forward_id VARCHAR(36) PRIMARY KEY,
+        record_id VARCHAR(36) NOT NULL,
+        file_id VARCHAR(36) NOT NULL,
+        forwarded_by INT NOT NULL,
+        forwarded_to VARCHAR(255) NOT NULL,
+        recipient_type VARCHAR(50) NOT NULL,
+        notes TEXT,
+        forward_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(50) DEFAULT 'Pending',
+        FOREIGN KEY (record_id) REFERENCES records_table(id) ON DELETE CASCADE,
+        FOREIGN KEY (file_id) REFERENCES files_table(id) ON DELETE CASCADE,
+        FOREIGN KEY (forwarded_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        INDEX idx_record_id (record_id),
+        INDEX idx_forwarded_by (forwarded_by)
+      )
+    `)
+    console.log("forwarded_records table created successfully")
 
     return { success: true, message: "Tables created successfully" }
   } catch (error) {
