@@ -28,7 +28,7 @@ export default function RecentActivitiesView() {
   useEffect(() => {
     const loadActivities = async () => {
       // Call server component
-      await handleFileOperation("admin123", "admin", false, true, false)
+     
 
       const mockActivities: Activity[] = []
 

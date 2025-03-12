@@ -19,10 +19,6 @@ export default function SearchRecordsView() {
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return
-
-    // Call server component
-    await handleFileOperation("admin123", "admin", false, false, false)
-
     // Search through all files and their records
     const results: { record: Record; fileId: string }[] = []
 

@@ -23,9 +23,6 @@ export default function UsersView() {
   // Load mock users
   useEffect(() => {
     const loadUsers = async () => {
-      // Call server component
-      await handleFileOperation("admin123", "admin", false, false, false)
-
       // Mock users data
       const mockUsers: User[] = [
         {

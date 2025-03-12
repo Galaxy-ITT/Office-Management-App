@@ -17,8 +17,7 @@ export default function OpenFilesView() {
   // Call server component when view is loaded
   useState(() => {
     const loadData = async () => {
-      const result = await handleFileOperation("admin123", "admin", false, false, false)
-      console.log("Server response for Open Files view:", result)
+     
     }
     loadData()
   })

@@ -3,9 +3,9 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { handleFileOperation, fetchFilesByAdmin } from "./file-system-server"
+import { handleFileOperation, fetchFilesByAdmin, fetchRecordsByFileId } from "./file-system-server"
 import { useRouter } from "next/navigation"
-import { handleRecordOperation, fetchRecordsByFileId } from "./file-system-server"
+import { handleRecordOperation } from "./file-system-server"
 
 export type FileType = "Open File" | "Secret File" | "Subject Matter" | "Temporary"
 
@@ -82,19 +82,53 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedRecord, setSelectedRecord] = useState<Record | null>(null)
   const [adminData, setAdminData] = useState(initialAdminData)
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     const loadFiles = async () => {
       if (adminData?.admin_id) {
-        const result = await fetchFilesByAdmin(adminData.admin_id)
-        if (result.success && result.data) {
-          setFiles(result.data.map(file => ({
-            ...file,
-            type: file.type as FileType
-          })))
-        } else {
-          console.error("Failed to load files:", result.error)
+        setIsLoadingFiles(true)
+        try {
+          // First, fetch all files
+          const result = await fetchFilesByAdmin(adminData.admin_id)
+          
+          if (result.success && result.data) {
+            const filesWithoutRecords = result.data.map(file => ({
+              ...file,
+              type: file.type as FileType,
+              records: [] // Initialize with empty records
+            }))
+            
+            // Set initial files state to show something to the user
+            setFiles(filesWithoutRecords)
+            
+            // Then fetch records for each file
+            const filesWithRecords = [...filesWithoutRecords]
+            
+            // Process files in sequence to avoid overwhelming the server
+            for (let i = 0; i < filesWithRecords.length; i++) {
+              const file = filesWithRecords[i]
+              const recordsResult = await fetchRecordsByFileId(file.id)
+              
+              if (recordsResult.success && recordsResult.data) {
+                filesWithRecords[i] = {
+                  ...file,
+                  //@ts-ignore
+                  records: recordsResult.data
+                }
+              }
+            }
+            
+            // Update state with complete file data including records
+            setFiles(filesWithRecords)
+          } else {
+            console.error("Failed to load files:", result.error)
+          }
+        } catch (error) {
+          console.error("Error loading files and records:", error)
+        } finally {
+          setIsLoadingFiles(false)
         }
       }
     }
@@ -116,32 +150,37 @@ export const FileSystemProvider: React.FC<{ children: React.ReactNode; adminData
 
   const selectFile = async (file: File | null) => {
     if (file) {
-      // Fetch records for the selected file
-      const result = await fetchRecordsByFileId(file.id);
-      if (result.success && result.data) {
-        // Update the file with its records
-        const updatedFile = {
-          ...file,
-          records: result.data
-        };
-        
-        // Update the file in the files array
-        setFiles(files.map(f => 
-          f.id === file.id ? updatedFile : f
-        ));
-        
-        // Set the selected file with records
-        setSelectedFile(updatedFile);
+      // If the file already has records loaded, just set it as selected
+      if (file.records && file.records.length > 0) {
+        setSelectedFile(file)
       } else {
-        // If no records found, still select the file but with empty records
-        setSelectedFile(file);
-        console.error("Failed to load records:", result.error);
+        // Fetch records for the selected file
+        const result = await fetchRecordsByFileId(file.id)
+        if (result.success && result.data) {
+          // Update the file with its records
+          const updatedFile = {
+            ...file,
+            records: result.data
+          }
+          
+          // Update the file in the files array
+          setFiles(files.map(f => 
+            f.id === file.id ? updatedFile : f
+          ))
+          
+          // Set the selected file with records
+          setSelectedFile(updatedFile)
+        } else {
+          // If no records found, still select the file but with empty records
+          setSelectedFile(file)
+          console.error("Failed to load records:", result.error)
+        }
       }
     } else {
-      setSelectedFile(null);
+      setSelectedFile(null)
     }
-    setSelectedRecord(null);
-  };
+    setSelectedRecord(null)
+  }
 
   const selectRecord = (record: Record | null) => {
     setSelectedRecord(record)

@@ -17,8 +17,7 @@ export default function FilesView() {
 
   const handleNewFile = async () => {
     setIsNewFileDialogOpen(true)
-    const result = await handleFileOperation("admin123", "admin", true)
-    console.log("Server response:", result)
+    
   }
 
   const handleFileCreated = () => {
