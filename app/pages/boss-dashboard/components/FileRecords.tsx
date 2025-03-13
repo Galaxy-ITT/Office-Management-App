@@ -1,241 +1,269 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FileText, Eye } from "lucide-react"
-
-const fileRecords = [
-  {
-    id: 1,
-    name: "Q2 Report.pdf",
-    uploadedBy: "Alice Johnson",
-    date: "2023-06-30",
-    uniqueNumber: "FR-2023-001",
-    type: "Quarterly Report",
-    from: "Finance Department",
-    to: "Executive Board",
-    subject: "Q2 Financial Summary",
-    content: "Detailed financial analysis for Q2 2023",
-    status: "Submitted",
-    reference: "FIN-Q2-2023",
-    trackingNumber: "TRK-001-2023",
-  },
-  {
-    id: 2,
-    name: "Project Proposal.docx",
-    uploadedBy: "Bob Smith",
-    date: "2023-06-28",
-    uniqueNumber: "FR-2023-002",
-    type: "Proposal",
-    from: "IT Department",
-    to: "Management",
-    subject: "New Software Implementation",
-    content: "Proposal for implementing new project management software",
-    status: "Under Review",
-    reference: "IT-PROP-2023",
-    trackingNumber: "TRK-002-2023",
-  },
-  {
-    id: 3,
-    name: "Marketing Plan.pptx",
-    uploadedBy: "Carol Williams",
-    date: "2023-06-25",
-    uniqueNumber: "FR-2023-003",
-    type: "Presentation",
-    from: "Marketing Department",
-    to: "Executive Team",
-    subject: "Q3 Marketing Strategy",
-    content: "Comprehensive marketing plan for Q3 2023",
-    status: "Approved",
-    reference: "MKT-Q3-2023",
-    trackingNumber: "TRK-003-2023",
-  },
-]
+import { FileText, Eye, Loader2 } from "lucide-react"
+import { fetchBossRecords, ForwardedBossRecord } from "./_queries"
 
 const staffMembers = ["Alice Johnson", "Bob Smith", "Carol Williams", "David Brown", "Eva Garcia"]
 
 export default function FileRecords() {
-  const [selectedFile, setSelectedFile] = useState(null)
+  const [records, setRecords] = useState<ForwardedBossRecord[]>([])
+  const [selectedRecord, setSelectedRecord] = useState<ForwardedBossRecord | null>(null)
+  const [showDialog, setShowDialog] = useState(false)
   const [isReviewing, setIsReviewing] = useState(false)
+  const [reviewAction, setReviewAction] = useState<string>("")
   const [reviewNote, setReviewNote] = useState("")
-  const [reviewAction, setReviewAction] = useState("")
   const [minuteTo, setMinuteTo] = useState("")
+  const [loading, setLoading] = useState(true)
 
-  const handleReview = (file) => {
-    setSelectedFile(file)
-    setIsReviewing(true)
-    setReviewNote("")
+  useEffect(() => {
+    const loadRecords = async () => {
+      try {
+        setLoading(true)
+        const result = await fetchBossRecords()
+        if (result.success && result.data) {
+          setRecords(result.data)
+        } else {
+          console.error("Failed to load records:", result.error)
+        }
+      } catch (error) {
+        console.error("Error loading records:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadRecords()
+  }, [])
+
+  const handleViewRecord = (record: ForwardedBossRecord) => {
+    setSelectedRecord(record)
+    setShowDialog(true)
+    setIsReviewing(false)
     setReviewAction("")
+    setReviewNote("")
     setMinuteTo("")
   }
 
   const handleSubmitReview = () => {
-    // Here you would typically update the backend
-    console.log("Review submitted", {
-      fileId: selectedFile.id,
+    // Here you would implement the actual review submission logic
+    console.log("Submitting review:", {
+      record: selectedRecord,
       action: reviewAction,
       note: reviewNote,
       minuteTo: minuteTo,
     })
 
-    // Update the file status based on the action
-    const newStatus =
-      reviewAction === "approve"
-        ? "Approved"
-        : reviewAction === "reject"
-          ? "Rejected"
-          : reviewAction === "minute"
-            ? "Minuted"
-            : "Sent Back"
-
-    // Update the file in the list
-    const updatedFiles = fileRecords.map((file) =>
-      file.id === selectedFile.id ? { ...file, status: newStatus } : file,
-    )
-
-    // In a real application, you would update the state here
-    // For this example, we're just logging the updated files
-    console.log("Updated files:", updatedFiles)
-
+    // Reset form and close dialog
+    setShowDialog(false)
     setIsReviewing(false)
-    setSelectedFile(null)
+    setReviewAction("")
+    setReviewNote("")
+    setMinuteTo("")
+    setSelectedRecord(null)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent File Records</CardTitle>
+        <CardTitle>Forwarded Records</CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-4">
-          {fileRecords.map((file) => (
-            <li key={file.id} className="flex items-center gap-4">
-              <FileText className="w-6 h-6 text-muted-foreground" />
-              <div className="flex-1">
-                <p className="font-medium">{file.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  Uploaded by {file.uploadedBy} on {file.date}
-                </p>
-                <p className="text-sm text-muted-foreground">Status: {file.status}</p>
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : records.length === 0 ? (
+          <div className="text-center py-4">
+            <p className="text-muted-foreground">No forwarded records found</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {records.map((record) => (
+              <div
+                key={record.id}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText className="h-6 w-6 text-blue-500" />
+                  <div>
+                    <h4 className="font-medium">{record.subject}</h4>
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      <span>{record.type}</span>
+                      <span>•</span>
+                      <span>{formatDate(record.date)}</span>
+                      <span>•</span>
+                      <span>From: {record.from}</span>
+                    </div>
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      <span>Forwarded by: {record.adminName}</span>
+                      <span>•</span>
+                      <span>Date: {formatDate(record.forward_date)}</span>
+                    </div>
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      <span>File: {record.fileName}</span>
+                      <span>•</span>
+                      <span>Ref: {record.reference}</span>
+                    </div>
+                  </div>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => handleViewRecord(record)}>
+                  <Eye className="h-4 w-4 mr-1" />
+                  View
+                </Button>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedFile(file)}>
-                <Eye className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleReview(file)}>
-                Review
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
+            ))}
+          </div>
+        )}
 
-      <Dialog open={!!selectedFile} onOpenChange={() => setSelectedFile(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{isReviewing ? "Review File" : "File Details"}</DialogTitle>
-          </DialogHeader>
-          {selectedFile && !isReviewing && (
-            <div className="space-y-2">
-              <p>
-                <strong>Unique Number:</strong> {selectedFile.uniqueNumber}
-              </p>
-              <p>
-                <strong>Type:</strong> {selectedFile.type}
-              </p>
-              <p>
-                <strong>Date:</strong> {new Date(selectedFile.date).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>From:</strong> {selectedFile.from}
-              </p>
-              <p>
-                <strong>To:</strong> {selectedFile.to}
-              </p>
-              <p>
-                <strong>Subject:</strong> {selectedFile.subject}
-              </p>
-              <p>
-                <strong>Content:</strong> {selectedFile.content}
-              </p>
-              <p>
-                <strong>Status:</strong> {selectedFile.status}
-              </p>
-              <p>
-                <strong>Reference:</strong> {selectedFile.reference}
-              </p>
-              <p>
-                <strong>Tracking Number:</strong> {selectedFile.trackingNumber}
-              </p>
-            </div>
-          )}
-          {selectedFile && isReviewing && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="action">Action</Label>
-                <Select onValueChange={setReviewAction}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an action" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="approve">Approve</SelectItem>
-                    <SelectItem value="reject">Reject</SelectItem>
-                    <SelectItem value="minute">Minute to Someone</SelectItem>
-                    <SelectItem value="sendback">Send Back</SelectItem>
-                  </SelectContent>
-                </Select>
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{selectedRecord?.subject}</DialogTitle>
+            </DialogHeader>
+            {selectedRecord && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium">Type</p>
+                    <p className="text-sm">{selectedRecord.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Date</p>
+                    <p className="text-sm">{formatDate(selectedRecord.date)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">From</p>
+                    <p className="text-sm">{selectedRecord.from}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">To</p>
+                    <p className="text-sm">{selectedRecord.to}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Reference</p>
+                    <p className="text-sm">{selectedRecord.reference}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Tracking Number</p>
+                    <p className="text-sm">{selectedRecord.trackingNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Status</p>
+                    <p className="text-sm">{selectedRecord.status}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Unique Number</p>
+                    <p className="text-sm">{selectedRecord.uniqueNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Forwarded By</p>
+                    <p className="text-sm">{selectedRecord.adminName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Forwarded On</p>
+                    <p className="text-sm">{formatDate(selectedRecord.forward_date)}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Content</p>
+                  <p className="text-sm">{selectedRecord.content}</p>
+                </div>
+                {selectedRecord.notes && (
+                  <div>
+                    <p className="text-sm font-medium">Forwarding Notes</p>
+                    <p className="text-sm">{selectedRecord.notes}</p>
+                  </div>
+                )}
+                {selectedRecord.attachmentName && (
+                  <div>
+                    <p className="text-sm font-medium">Attachment</p>
+                    <p className="text-sm">
+                      {selectedRecord.attachmentName} 
+                      {selectedRecord.attachmentSize && ` (${Math.round(selectedRecord.attachmentSize / 1024)} KB)`}
+                    </p>
+                  </div>
+                )}
               </div>
-              {reviewAction === "minute" && (
+            )}
+            {selectedRecord && isReviewing && (
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="minuteTo">Minute To</Label>
-                  <Select onValueChange={setMinuteTo}>
+                  <Label htmlFor="action">Action</Label>
+                  <Select onValueChange={setReviewAction}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a staff member" />
+                      <SelectValue placeholder="Select an action" />
                     </SelectTrigger>
                     <SelectContent>
-                      {staffMembers.map((staff) => (
-                        <SelectItem key={staff} value={staff}>
-                          {staff}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="approve">Approve</SelectItem>
+                      <SelectItem value="reject">Reject</SelectItem>
+                      <SelectItem value="minute">Minute to Someone</SelectItem>
+                      <SelectItem value="sendback">Send Back</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="note">Review Note</Label>
-                <Textarea
-                  id="note"
-                  value={reviewNote}
-                  onChange={(e) => setReviewNote(e.target.value)}
-                  placeholder="Enter your review note here..."
-                />
+                {reviewAction === "minute" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="minuteTo">Minute To</Label>
+                    <Select onValueChange={setMinuteTo}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a staff member" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {staffMembers.map((staff) => (
+                          <SelectItem key={staff} value={staff}>
+                            {staff}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="note">Review Note</Label>
+                  <Textarea
+                    id="note"
+                    value={reviewNote}
+                    onChange={(e) => setReviewNote(e.target.value)}
+                    placeholder="Enter your review note here..."
+                  />
+                </div>
               </div>
-            </div>
-          )}
-          <DialogFooter>
-            {isReviewing ? (
-              <>
-                <Button variant="outline" onClick={() => setIsReviewing(false)}>
-                  Back
-                </Button>
-                <Button onClick={handleSubmitReview}>Submit Review</Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" onClick={() => setSelectedFile(null)}>
-                  Close
-                </Button>
-                <Button onClick={() => setIsReviewing(true)}>Review</Button>
-              </>
             )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              {isReviewing ? (
+                <>
+                  <Button variant="outline" onClick={() => setIsReviewing(false)}>
+                    Back
+                  </Button>
+                  <Button onClick={handleSubmitReview}>Submit Review</Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setShowDialog(false)}>
+                    Close
+                  </Button>
+                  <Button onClick={() => setIsReviewing(true)}>Review</Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
     </Card>
   )
 }

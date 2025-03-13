@@ -10,6 +10,7 @@ import StaffList from "./components/StaffList"
 import LeaveRequests from "./components/LeaveRequests"
 import FileRecords from "./components/FileRecords"
 import PerformanceOverview from "./components/PerformanceOverview"
+import { FileSystemProvider } from "../admin/dashboard/file-system-context"
 
 export default function BossDashboard() {
   const { userData } = useContext(UserContext)
@@ -19,7 +20,7 @@ export default function BossDashboard() {
   useEffect(() => {
     // Check if user is authenticated
     if (!userData || !userData.data) {
-      router.push("/pages/login")
+      router.push("/pages/admins-login")
     }
   }, [userData, router])
 
@@ -40,6 +41,8 @@ export default function BossDashboard() {
             </div>
           </div>
         )
+      case "Files":
+        return <FileRecords />
       case "Staff List":
         return <StaffList />
       case "Leave Requests":
@@ -64,15 +67,17 @@ export default function BossDashboard() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen bg-background">
-        <BossSidebar onMenuSelect={handleMenuSelect} />
-        <SidebarInset className="flex-1">
-          <main className="flex-1 p-6">{renderActiveView()}</main>
-        </SidebarInset>
-      </div>
-      <Toaster />
-    </SidebarProvider>
+    <FileSystemProvider adminData={userData?.data}>
+      <SidebarProvider>
+        <div className="flex min-h-screen bg-background">
+          <BossSidebar onMenuSelect={handleMenuSelect} />
+          <SidebarInset className="flex-1">
+            <main className="flex-1 p-6">{renderActiveView()}</main>
+          </SidebarInset>
+        </div>
+        <Toaster />
+      </SidebarProvider>
+    </FileSystemProvider>
   )
 }
 
