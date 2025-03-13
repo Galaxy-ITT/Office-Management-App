@@ -21,6 +21,12 @@ export default function FileRecords() {
   const [reviewNote, setReviewNote] = useState("")
   const [minuteTo, setMinuteTo] = useState("")
   const [loading, setLoading] = useState(true)
+  const [showAttachmentViewer, setShowAttachmentViewer] = useState(false)
+  const [viewingAttachment, setViewingAttachment] = useState<{
+    url: string;
+    name: string;
+    type: string;
+  } | null>(null)
 
   useEffect(() => {
     const loadRecords = async () => {
@@ -77,6 +83,11 @@ export default function FileRecords() {
     })
   }
 
+  const openAttachmentViewer = (url: string, name: string, type: string) => {
+    setViewingAttachment({ url, name, type })
+    setShowAttachmentViewer(true)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -104,8 +115,7 @@ export default function FileRecords() {
                     <h4 className="font-medium">{record.subject}</h4>
                     <div className="flex gap-2 text-xs text-muted-foreground">
                       <span>{record.type}</span>
-                      <span>•</span>
-                      <span>{formatDate(record.date)}</span>
+                  
                       <span>•</span>
                       <span>From: {record.from}</span>
                     </div>
@@ -192,10 +202,98 @@ export default function FileRecords() {
                 {selectedRecord.attachmentName && (
                   <div>
                     <p className="text-sm font-medium">Attachment</p>
-                    <p className="text-sm">
-                      {selectedRecord.attachmentName} 
-                      {selectedRecord.attachmentSize && ` (${Math.round(selectedRecord.attachmentSize / 1024)} KB)`}
-                    </p>
+                    <div className="p-3 border rounded-md bg-muted/10">
+                      {selectedRecord.attachmentUrl ? (
+                        <>
+                          {selectedRecord.attachmentType?.startsWith('image/') ? (
+                            <div className="mt-2 cursor-pointer" 
+                                 onClick={() => openAttachmentViewer(
+                                   selectedRecord.attachmentUrl!, 
+                                   selectedRecord.attachmentName || 'Attachment',
+                                   selectedRecord.attachmentType || 'image/*'
+                                 )}>
+                              <img 
+                                src={selectedRecord.attachmentUrl}
+                                alt={selectedRecord.attachmentName || 'Attachment'}
+                                className="max-h-64 rounded-md border mx-auto hover:opacity-90 transition-opacity"
+                              />
+                              <p className="text-xs text-center mt-2 text-muted-foreground">
+                                {selectedRecord.attachmentName} 
+                                {selectedRecord.attachmentSize && 
+                                  ` (${Math.round(selectedRecord.attachmentSize / 1024)} KB)`}
+                                <span className="ml-2 text-blue-500">(Click to enlarge)</span>
+                              </p>
+                            </div>
+                          ) : selectedRecord.attachmentType?.includes('pdf') ? (
+                            <div className="mt-2">
+                              <div className="relative">
+                                <embed 
+                                  src={selectedRecord.attachmentUrl}
+                                  type="application/pdf"
+                                  className="w-full h-64 border"
+                                />
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                                  onClick={() => openAttachmentViewer(
+                                    selectedRecord.attachmentUrl!, 
+                                    selectedRecord.attachmentName || 'Document.pdf',
+                                    'application/pdf'
+                                  )}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View Full Screen
+                                </Button>
+                              </div>
+                              <p className="text-xs text-center mt-2 text-muted-foreground">
+                                {selectedRecord.attachmentName} 
+                                {selectedRecord.attachmentSize && 
+                                  ` (${Math.round(selectedRecord.attachmentSize / 1024)} KB)`}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center p-2">
+                                <FileText className="h-4 w-4 mr-2" />
+                                <span>
+                                  {selectedRecord.attachmentName}
+                                  {selectedRecord.attachmentSize && (
+                                    <span className="ml-1 text-xs text-muted-foreground">
+                                      ({Math.round(selectedRecord.attachmentSize / 1024)} KB)
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => openAttachmentViewer(
+                                  selectedRecord.attachmentUrl!, 
+                                  selectedRecord.attachmentName || 'Document',
+                                  selectedRecord.attachmentType || 'application/octet-stream'
+                                )}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View File
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex items-center p-2">
+                          <FileText className="h-4 w-4 mr-2" />
+                          <span>
+                            {selectedRecord.attachmentName}
+                            {selectedRecord.attachmentSize && (
+                              <span className="ml-1 text-xs text-muted-foreground">
+                                ({Math.round(selectedRecord.attachmentSize / 1024)} KB)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -260,6 +358,63 @@ export default function FileRecords() {
                   <Button onClick={() => setIsReviewing(true)}>Review</Button>
                 </>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Full Screen Attachment Viewer */}
+        <Dialog open={showAttachmentViewer} onOpenChange={setShowAttachmentViewer}>
+          <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden">
+            <DialogHeader className="p-4 border-b">
+              <DialogTitle className="flex items-center">
+                <FileText className="h-5 w-5 mr-2" />
+                {viewingAttachment?.name || 'Attachment'}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="relative w-full h-[calc(90vh-8rem)] overflow-auto">
+              {viewingAttachment?.type.startsWith('image/') ? (
+                <div className="flex items-center justify-center h-full bg-black/5 p-4">
+                  <img
+                    src={viewingAttachment.url}
+                    alt={viewingAttachment.name}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              ) : viewingAttachment?.type.includes('pdf') ? (
+                <embed
+                  src={viewingAttachment.url}
+                  type="application/pdf"
+                  className="w-full h-full"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-8">
+                  <FileText className="h-16 w-16 mb-4 text-muted-foreground" />
+                  <p className="text-center mb-4">
+                    This file type can't be previewed directly in the browser.
+                  </p>
+                  <Button 
+                    onClick={() => window.open(viewingAttachment?.url, '_blank')}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Open in New Tab
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter className="p-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAttachmentViewer(false)}
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => window.open(viewingAttachment?.url, '_blank')}
+              >
+                Open in New Tab
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
