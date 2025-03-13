@@ -16,7 +16,7 @@ import { UserContext } from '@/userContext/userContext'
 function getRedirectPath(role: any) {
   switch (role) {
     case "Boss":
-      return "/pages/boss";
+      return "/pages/boss-dashboard";
     case "Registry":
       return "/pages/admin";
     case "Human Resource":
