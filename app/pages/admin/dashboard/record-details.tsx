@@ -365,8 +365,14 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
         <CardFooter className="flex justify-between gap-2">
           {!isEditing ? (
             <>
-              <Button variant="outline" size="sm" onClick={handleForward}>
-                <Send className="mr-2 h-4 w-4" /> Forward
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleForward}
+                disabled={record.status === "Forwarded"}
+              >
+                <Send className="mr-2 h-4 w-4" /> 
+                {record.status === "Forwarded" ? "Forwarded" : "Forward"}
               </Button>
               <div>
                 <Button variant="outline" size="sm" onClick={handleEdit} className="mr-2">

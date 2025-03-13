@@ -139,7 +139,7 @@ export default function NewRecordDialog({ isOpen, onClose, fileId, onRecordCreat
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Record</DialogTitle>
         </DialogHeader>
@@ -151,19 +151,39 @@ export default function NewRecordDialog({ isOpen, onClose, fileId, onRecordCreat
             </Alert>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="from">From *</Label>
-            <Input
-              id="from"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              required
-            />
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="type">Type</Label>
+              <Select value={recordType} onValueChange={setRecordType}>
+                <SelectTrigger id="type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="incoming">Incoming</SelectItem>
+                  <SelectItem value="outgoing">Outgoing</SelectItem>
+                  <SelectItem value="Memo">Memo</SelectItem>
+                  <SelectItem value="Letter">Letter</SelectItem>
+                  <SelectItem value="Report">Report</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="to">To</Label>
-            <Input id="to" value={to} onChange={(e) => setTo(e.target.value)} placeholder="Recipient" required />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="from">From</Label>
+              <Input
+                id="from"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="to">To</Label>
+              <Input id="to" value={to} onChange={(e) => setTo(e.target.value)} placeholder="Recipient" required />
+            </div>
           </div>
 
           <div className="space-y-2">
