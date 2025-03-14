@@ -81,6 +81,26 @@ export async function createAllTables() {
     `)
     console.log("forwarded_records table created successfully")
 
+    // Create reviews_records table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reviews_records (
+        review_id VARCHAR(36) PRIMARY KEY,
+        record_id VARCHAR(36) NOT NULL,
+        forward_id VARCHAR(36) NOT NULL,
+        reviewed_by VARCHAR(255) NOT NULL,
+        review_action VARCHAR(50) NOT NULL,
+        review_note TEXT,
+        department VARCHAR(255),
+        department_person VARCHAR(255),
+        review_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (record_id) REFERENCES records_table(id) ON DELETE CASCADE,
+        FOREIGN KEY (forward_id) REFERENCES forwarded_records(forward_id) ON DELETE CASCADE,
+        INDEX idx_record_id (record_id),
+        INDEX idx_forward_id (forward_id)
+      )
+    `)
+    console.log("reviews_records table created successfully")
+
     return { success: true, message: "All tables created successfully" }
   } catch (error) {
     console.error("Error creating tables:", error)
@@ -176,6 +196,26 @@ export async function table_files() {
       )
     `)
     console.log("forwarded_records table created successfully")
+
+    // Create reviews_records table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS reviews_records (
+        review_id VARCHAR(36) PRIMARY KEY,
+        record_id VARCHAR(36) NOT NULL,
+        forward_id VARCHAR(36) NOT NULL,
+        reviewed_by VARCHAR(255) NOT NULL,
+        review_action VARCHAR(50) NOT NULL,
+        review_note TEXT,
+        department VARCHAR(255),
+        department_person VARCHAR(255),
+        review_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (record_id) REFERENCES records_table(id) ON DELETE CASCADE,
+        FOREIGN KEY (forward_id) REFERENCES forwarded_records(forward_id) ON DELETE CASCADE,
+        INDEX idx_record_id (record_id),
+        INDEX idx_forward_id (forward_id)
+      )
+    `)
+    console.log("reviews_records table created successfully")
 
     return { success: true, message: "Tables created successfully" }
   } catch (error) {

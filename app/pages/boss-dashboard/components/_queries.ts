@@ -37,6 +37,17 @@ export interface ForwardedBossRecord {
   adminName?: string;
 }
 
+// Define types for the review data
+export interface ReviewSubmission {
+  record_id: string;
+  forward_id: string;
+  reviewed_by: string;
+  review_action: string;
+  review_note: string;
+  department?: string;
+  department_person?: string;
+}
+
 export async function fetchBossRecords(): Promise<{ 
   success: boolean; 
   data?: ForwardedBossRecord[]; 
@@ -125,5 +136,75 @@ export async function fetchBossRecords(): Promise<{
       success: false,
       error: error?.message || "Failed to fetch records"
     };
+  }
+}
+
+export async function submitReview(reviewData: ReviewSubmission): Promise<{ 
+  success: boolean; 
+  message?: string; 
+  error?: string 
+}> {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    // Generate a unique ID for the review
+    const review_id = crypto.randomUUID();
+    
+    // 1. Insert the review into reviews_records table
+    const insertQuery = `
+      INSERT INTO reviews_records (
+        review_id, 
+        record_id, 
+        forward_id, 
+        reviewed_by, 
+        review_action, 
+        review_note, 
+        department, 
+        department_person
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    await connection.execute(insertQuery, [
+      review_id,
+      reviewData.record_id,
+      reviewData.forward_id,
+      reviewData.reviewed_by,
+      reviewData.review_action,
+      reviewData.review_note,
+      reviewData.department || null,
+      reviewData.department_person || null
+    ]);
+    
+    // 2. Update records_table status to "Reviewed"
+    await connection.execute(
+      `UPDATE records_table SET status = 'Reviewed' WHERE id = ?`,
+      [reviewData.record_id]
+    );
+    
+    // 3. Update forwarded_records status to "Reviewed"
+    await connection.execute(
+      `UPDATE forwarded_records SET status = 'Reviewed' WHERE forward_id = ?`,
+      [reviewData.forward_id]
+    );
+    
+    await connection.commit();
+    
+    return {
+      success: true,
+      message: "Review submitted successfully"
+    };
+    
+  } catch (error: any) {
+    await connection.rollback();
+    console.error("Error submitting review:", error);
+    
+    return {
+      success: false,
+      error: error?.message || "Failed to submit review"
+    };
+  } finally {
+    connection.release();
   }
 }

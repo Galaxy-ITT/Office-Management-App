@@ -8,9 +8,27 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FileText, Eye, Loader2 } from "lucide-react"
-import { fetchBossRecords, ForwardedBossRecord } from "./_queries"
+import { fetchBossRecords, ForwardedBossRecord, submitReview } from "./_queries"
+import { v4 as uuidv4 } from 'uuid';
 
-const staffMembers = ["Alice Johnson", "Bob Smith", "Carol Williams", "David Brown", "Eva Garcia"]
+const departments = [
+  {
+    name: "Administration",
+    staff: ["Alice Johnson (Director)", "Bob Smith (Deputy Director)", "Carol Williams (Admin Officer)"]
+  },
+  {
+    name: "Finance",
+    staff: ["David Brown (CFO)", "Eva Garcia (Accountant)", "Frank Miller (Finance Officer)"]
+  },
+  {
+    name: "Operations",
+    staff: ["Grace Lee (Operations Manager)", "Henry Wilson (Team Lead)", "Irene Martinez (Supervisor)"]
+  },
+  {
+    name: "Legal",
+    staff: ["James Taylor (Legal Counsel)", "Karen White (Legal Officer)", "Leo Thompson (Paralegal)"]
+  }
+];
 
 export default function FileRecords() {
   const [records, setRecords] = useState<ForwardedBossRecord[]>([])
@@ -27,6 +45,11 @@ export default function FileRecords() {
     name: string;
     type: string;
   } | null>(null)
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("")
+  const [departmentPerson, setDepartmentPerson] = useState<string>("")
+  const [submitting, setSubmitting] = useState(false)
+  const [departmentStaff, setDepartmentStaff] = useState<string[]>([])
+  const [reviewMessage, setReviewMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   useEffect(() => {
     const loadRecords = async () => {
@@ -48,6 +71,16 @@ export default function FileRecords() {
     loadRecords()
   }, [])
 
+  useEffect(() => {
+    if (selectedDepartment) {
+      const dept = departments.find(d => d.name === selectedDepartment);
+      setDepartmentStaff(dept?.staff || []);
+      setDepartmentPerson(""); // Reset person when department changes
+    } else {
+      setDepartmentStaff([]);
+    }
+  }, [selectedDepartment]);
+
   const handleViewRecord = (record: ForwardedBossRecord) => {
     setSelectedRecord(record)
     setShowDialog(true)
@@ -57,23 +90,67 @@ export default function FileRecords() {
     setMinuteTo("")
   }
 
-  const handleSubmitReview = () => {
-    // Here you would implement the actual review submission logic
-    console.log("Submitting review:", {
-      record: selectedRecord,
-      action: reviewAction,
-      note: reviewNote,
-      minuteTo: minuteTo,
-    })
-
-    // Reset form and close dialog
-    setShowDialog(false)
-    setIsReviewing(false)
-    setReviewAction("")
-    setReviewNote("")
-    setMinuteTo("")
-    setSelectedRecord(null)
-  }
+  const handleSubmitReview = async () => {
+    if (!selectedRecord) return;
+    
+    if (!reviewAction) {
+      setReviewMessage({ type: 'error', text: 'Please select an action' });
+      return;
+    }
+    
+    if (reviewAction === "minute" && (!selectedDepartment || !departmentPerson)) {
+      setReviewMessage({ type: 'error', text: 'Please select both department and person' });
+      return;
+    }
+    
+    if (!reviewNote) {
+      setReviewMessage({ type: 'error', text: 'Please provide a review note' });
+      return;
+    }
+    
+    setSubmitting(true);
+    
+    try {
+      const result = await submitReview({
+        record_id: selectedRecord.id,
+        forward_id: selectedRecord.forward_id,
+        reviewed_by: "Boss", // You might want to replace this with actual boss name
+        review_action: reviewAction,
+        review_note: reviewNote,
+        department: reviewAction === "minute" ? selectedDepartment : undefined,
+        department_person: reviewAction === "minute" ? departmentPerson : undefined
+      });
+      
+      if (result.success) {
+        setReviewMessage({ type: 'success', text: 'Review submitted successfully' });
+        
+        // Refresh the records list
+        const updatedRecords = await fetchBossRecords();
+        if (updatedRecords.success && updatedRecords.data) {
+          setRecords(updatedRecords.data);
+        }
+        
+        // Reset form and close dialog
+        setTimeout(() => {
+          setShowDialog(false);
+          setIsReviewing(false);
+          setReviewAction("");
+          setReviewNote("");
+          setSelectedDepartment("");
+          setDepartmentPerson("");
+          setSelectedRecord(null);
+          setReviewMessage(null);
+        }, 1500);
+      } else {
+        setReviewMessage({ type: 'error', text: result.error || 'Failed to submit review' });
+      }
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      setReviewMessage({ type: 'error', text: 'An unexpected error occurred' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -300,36 +377,62 @@ export default function FileRecords() {
             )}
             {selectedRecord && isReviewing && (
               <div className="space-y-4">
+                {reviewMessage && (
+                  <div className={`p-3 rounded-md ${reviewMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {reviewMessage.text}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="action">Action</Label>
-                  <Select onValueChange={setReviewAction}>
+                  <Select onValueChange={setReviewAction} value={reviewAction}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select an action" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="approve">Approve</SelectItem>
                       <SelectItem value="reject">Reject</SelectItem>
-                      <SelectItem value="minute">Minute to Someone</SelectItem>
+                      <SelectItem value="minute">Minute to Department</SelectItem>
                       <SelectItem value="sendback">Send Back</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 {reviewAction === "minute" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="minuteTo">Minute To</Label>
-                    <Select onValueChange={setMinuteTo}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a staff member" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {staffMembers.map((staff) => (
-                          <SelectItem key={staff} value={staff}>
-                            {staff}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Department</Label>
+                      <Select onValueChange={setSelectedDepartment} value={selectedDepartment}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept.name} value={dept.name}>
+                              {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="departmentPerson">Department Person</Label>
+                      <Select 
+                        onValueChange={setDepartmentPerson} 
+                        value={departmentPerson}
+                        disabled={!selectedDepartment}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={selectedDepartment ? "Select a person" : "Select a department first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departmentStaff.map((person) => (
+                            <SelectItem key={person} value={person}>
+                              {person}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
                 )}
                 <div className="space-y-2">
                   <Label htmlFor="note">Review Note</Label>
@@ -345,10 +448,22 @@ export default function FileRecords() {
             <DialogFooter>
               {isReviewing ? (
                 <>
-                  <Button variant="outline" onClick={() => setIsReviewing(false)}>
+                  <Button variant="outline" onClick={() => setIsReviewing(false)} disabled={submitting}>
                     Back
                   </Button>
-                  <Button onClick={handleSubmitReview}>Submit Review</Button>
+                  <Button 
+                    onClick={handleSubmitReview} 
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Review'
+                    )}
+                  </Button>
                 </>
               ) : (
                 <>
