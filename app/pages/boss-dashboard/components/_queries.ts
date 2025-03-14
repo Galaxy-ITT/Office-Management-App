@@ -48,6 +48,33 @@ export interface ReviewSubmission {
   department_person?: string;
 }
 
+// Define types for reviewed records
+export interface ReviewedRecord {
+  review_id: string;
+  record_id: string;
+  forward_id: string;
+  reviewed_by: string;
+  review_action: string;
+  review_note: string;
+  department?: string | null;
+  department_person?: string | null;
+  review_date: string;
+  
+  // Record details
+  uniqueNumber: string;
+  type: string;
+  date: string;
+  from: string;
+  to: string;
+  subject: string;
+  content: string;
+  reference: string;
+  
+  // File details
+  fileName: string;
+  fileNumber: string;
+}
+
 export async function fetchBossRecords(): Promise<{ 
   success: boolean; 
   data?: ForwardedBossRecord[]; 
@@ -206,5 +233,84 @@ export async function submitReview(reviewData: ReviewSubmission): Promise<{
     };
   } finally {
     connection.release();
+  }
+}
+
+export async function fetchReviewedRecords(): Promise<{ 
+  success: boolean; 
+  data?: ReviewedRecord[]; 
+  error?: string 
+}> {
+  try {
+    const query = `
+      SELECT 
+        rv.*,
+        r.uniqueNumber,
+        r.type,
+        r.date,
+        r.from,
+        r.to,
+        r.subject,
+        r.content,
+        r.reference,
+        f.name as fileName,
+        f.fileNumber
+      FROM 
+        reviews_records rv
+      JOIN 
+        records_table r ON rv.record_id = r.id
+      JOIN 
+        files_table f ON r.file_id = f.id
+      ORDER BY 
+        rv.review_date DESC
+    `;
+    
+    const [records] = await pool.query(query) as [RowDataPacket[], FieldPacket[]];
+    
+    if (Array.isArray(records) && records.length > 0) {
+      return {
+        success: true,
+        data: records.map(record => ({
+          // Review data
+          review_id: record.review_id,
+          record_id: record.record_id,
+          forward_id: record.forward_id,
+          reviewed_by: record.reviewed_by,
+          review_action: record.review_action,
+          review_note: record.review_note,
+          department: record.department,
+          department_person: record.department_person,
+          review_date: record.review_date instanceof Date 
+            ? record.review_date.toISOString() 
+            : record.review_date,
+          
+          // Record details
+          uniqueNumber: record.uniqueNumber,
+          type: record.type,
+          date: record.date instanceof Date ? record.date.toISOString() : record.date,
+          from: record.from,
+          to: record.to,
+          subject: record.subject,
+          content: record.content,
+          reference: record.reference,
+          
+          // File details
+          fileName: record.fileName,
+          fileNumber: record.fileNumber,
+        }))
+      };
+    }
+    
+    return {
+      success: true,
+      data: []
+    };
+    
+  } catch (error: any) {
+    console.error("Error fetching reviewed records:", error);
+    return {
+      success: false,
+      error: error?.message || "Failed to fetch reviewed records"
+    };
   }
 }

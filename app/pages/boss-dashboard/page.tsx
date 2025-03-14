@@ -11,6 +11,7 @@ import LeaveRequests from "./components/LeaveRequests"
 import FileRecords from "./components/FileRecords"
 import PerformanceOverview from "./components/PerformanceOverview"
 import { FileSystemProvider } from "../admin/dashboard/file-system-context"
+import ReviewedRecords from "./components/ReviewedRecords"
 
 export default function BossDashboard() {
   const { userData } = useContext(UserContext)
@@ -51,6 +52,8 @@ export default function BossDashboard() {
         return <FileRecords />
       case "Performance":
         return <PerformanceOverview />
+      case "Reviewed Records":
+        return <ReviewedRecords />
       // Add more views as needed
       default:
         return (

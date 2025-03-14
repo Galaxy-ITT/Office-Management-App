@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { FileText, FolderOpen, Home, LogOut, Users, PlusCircle, Clock, Search, Send, BarChart, UserCheck } from "lucide-react"
+import { FileText, FolderOpen, Home, LogOut, Users, PlusCircle, Clock, Search, Send, BarChart, UserCheck, ClipboardCheck, InboxIcon, Settings } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
 import { useContext, useState } from "react"
@@ -21,6 +21,8 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
+import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 interface BossSidebarProps {
   onMenuSelect: (menu: string) => void
@@ -179,6 +181,20 @@ export function BossSidebar({ onMenuSelect }: BossSidebarProps) {
                 <SidebarMenuButton onClick={() => onMenuSelect("Forwarded Documents")}>
                   <Send className="h-4 w-4" />
                   <span>Forwarded Documents</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarSeparator />
+        <SidebarGroup>
+          <SidebarGroupLabel>Reviewed Records</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => onMenuSelect("Reviewed Records")}>
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span>Reviewed Records</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
