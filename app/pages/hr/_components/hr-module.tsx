@@ -1,6 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import { useContext, useEffect } from 'react'
+import { UserContext } from "@/userContext/userContext"
+import { useRouter } from "next/navigation"
 import {
   BarChart3,
   Users,
@@ -19,6 +22,7 @@ import {
   Briefcase,
   UserCheck,
   ChevronRight,
+  LogOut,
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,6 +38,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { useToast } from "@/hooks/use-toast"
 
 import EmployeeDirectory from './EmployeeDirectory'
 import BenefitsCompensation from './BenefitsCompensation'
@@ -45,7 +50,7 @@ import Recruitment from './Recruitment'
 import ReportsAnalytics from './ReportsAnalytics'
 import TrainingDevelopment from './TrainingDevelopment'
 import AttendanceManagement from './AttendanceManagement'
-
+import DepartmentManagement from './DepartmentManagement'
 
 const pages = [
   { name: 'Dashboard', icon: BarChart3 },
@@ -59,6 +64,7 @@ const pages = [
   { name: 'Benefits and Compensation', icon: Gift },
   { name: 'Training and Development', icon: GraduationCap },
   { name: 'Reports and Analytics', icon: LineChart },
+  { name: 'Department Management', icon: Briefcase },
 ]
 
 const quickActions = [
@@ -77,6 +83,37 @@ const recentActivities = [
 
 export function HrModule() {
   const [activePage, setActivePage] = React.useState('Dashboard')
+  const { userData } = useContext(UserContext)
+  const router = useRouter()
+  const { toast } = useToast()
+  
+  // Get user name and format current date
+  const userName = userData?.data?.name || "User"
+  const currentDate = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
+  // Handle logout
+  const handleLogout = () => {
+    sessionStorage.clear()
+    router.push("/")
+    
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    })
+  }
+
+  // Authentication check
+  useEffect(() => {
+    // Check if user is authenticated
+    if (!userData || !userData.data) {
+      router.push("/pages/admins-login")
+    }
+  }, [userData, router])
 
   const renderDashboard = () => (
     <div className="space-y-6">
@@ -167,7 +204,10 @@ export function HrModule() {
         <Sidebar collapsible="icon">
           <SidebarHeader className="flex flex-col gap-4 p-4">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold truncate">HR Module</h1>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Welcome, {userName}</p>
+                <p className="text-xs text-muted-foreground">{currentDate}</p>
+              </div>
               <SidebarTrigger>
                 <Button variant="ghost" size="icon">
                   <ChevronRight className="h-6 w-6" />
@@ -197,7 +237,14 @@ export function HrModule() {
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4">
-            <p className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">© 2024 Your Company</p>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleLogout}>
+                  <LogOut className="h-4 w-4" />
+                  <span className="group-data-[collapsible=icon]:hidden ml-2">Logout</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
         <main className="flex-1 overflow-y-auto p-8">
@@ -218,7 +265,8 @@ export function HrModule() {
             activePage === 'Performance Reviews' ? <PerformanceReviews /> :
             activePage === 'Recruitment' ? <Recruitment /> :
             activePage === 'Reports and Analytics' ? <ReportsAnalytics /> :
-            activePage === 'Training and Development' ? <TrainingDevelopment /> : ""
+            activePage === 'Training and Development' ? <TrainingDevelopment /> : 
+            activePage === 'Department Management' ? <DepartmentManagement /> : ""
           }
         </main>
       </div>

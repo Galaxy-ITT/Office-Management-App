@@ -101,6 +101,22 @@ export async function createAllTables() {
     `)
     console.log("reviews_records table created successfully")
 
+    // Create departments_table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS departments_table (
+        department_id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        head_of_department VARCHAR(255),
+        location VARCHAR(255),
+        created_by INT NOT NULL,
+        date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        INDEX idx_created_by (created_by)
+      )
+    `)
+    console.log("departments_table created successfully")
+
     return { success: true, message: "All tables created successfully" }
   } catch (error) {
     console.error("Error creating tables:", error)
@@ -216,6 +232,21 @@ export async function table_files() {
       )
     `)
     console.log("reviews_records table created successfully")
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS departments_table (
+        department_id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        head_of_department VARCHAR(255),
+        location VARCHAR(255),
+        created_by INT NOT NULL,
+        date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        INDEX idx_created_by (created_by)
+      )
+    `)
+    console.log("departments_table created successfully")
 
     return { success: true, message: "Tables created successfully" }
   } catch (error) {
