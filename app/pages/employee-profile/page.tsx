@@ -10,7 +10,7 @@ const mockAttendanceData = {
 }
 
 const EmployeeDetails = dynamic(() => import("@/components/employee-details"))
-const LeaveManagement = dynamic(() => import("@/components/leave-management"))
+const LeaveManagement = dynamic(() => import("@/app/pages/hr/_components/leave-management"))
 const EmployeePerformance = dynamic(() => import("@/components/employee-performance"))
 const ProfessionalDevelopment = dynamic(() => import("@/components/professional-development"))
 

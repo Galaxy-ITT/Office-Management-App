@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import LeaveApplicationForm from "./leave-application-form"
+import LeaveApplicationForm from "../../../../components/leave-application-form"
 
 export default function LeaveManagement() {
   const [showLeaveForm, setShowLeaveForm] = useState(false)
