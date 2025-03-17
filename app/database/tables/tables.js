@@ -117,6 +117,27 @@ export async function createAllTables() {
     `)
     console.log("departments_table created successfully")
 
+    // Create employees_table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS employees_table (
+        employee_id VARCHAR(36) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        position VARCHAR(100) NOT NULL DEFAULT 'Staff',
+        department_id INT,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(50) NOT NULL,
+        status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+        created_by INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (department_id) REFERENCES departments_table(department_id) ON DELETE SET NULL,
+        FOREIGN KEY (created_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        INDEX idx_department (department_id),
+        INDEX idx_created_by (created_by)
+      )
+    `)
+    console.log("employees_table created successfully")
+
     return { success: true, message: "All tables created successfully" }
   } catch (error) {
     console.error("Error creating tables:", error)

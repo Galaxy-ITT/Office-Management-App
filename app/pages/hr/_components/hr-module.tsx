@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useContext, useEffect } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { UserContext } from "@/userContext/userContext"
 import { useRouter } from "next/navigation"
 import {
@@ -39,6 +39,9 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { useToast } from "@/hooks/use-toast"
+import { Form } from 'antd'
+import { Modal } from 'antd'
+import { Select } from 'antd'
 
 import EmployeeDirectory from './EmployeeDirectory'
 import BenefitsCompensation from './BenefitsCompensation'
@@ -51,6 +54,12 @@ import ReportsAnalytics from './ReportsAnalytics'
 import TrainingDevelopment from './TrainingDevelopment'
 import AttendanceManagement from './AttendanceManagement'
 import DepartmentManagement from './DepartmentManagement'
+import { 
+  fetchDashboardStats,
+  addEmployee,
+  Department,
+  fetchDepartments
+} from './_queries'
 
 const pages = [
   { name: 'Dashboard', icon: BarChart3 },
@@ -86,6 +95,15 @@ export function HrModule() {
   const { userData } = useContext(UserContext)
   const router = useRouter()
   const { toast } = useToast()
+  const [dashboardStats, setDashboardStats] = useState({
+    totalEmployees: 0,
+    openPositions: 0,
+    upcomingReviews: 0,
+    pendingLeaves: 0
+  })
+  const [isAddEmployeeModalVisible, setIsAddEmployeeModalVisible] = useState(false)
+  const [form] = Form.useForm()
+  const [departments, setDepartments] = useState<Department[]>([])
   
   // Get user name and format current date
   const userName = userData?.data?.name || "User"
@@ -95,6 +113,89 @@ export function HrModule() {
     month: "long",
     day: "numeric",
   })
+
+  // Fetch dashboard statistics
+  useEffect(() => {
+    const loadDashboardStats = async () => {
+      try {
+        const result = await fetchDashboardStats();
+        if (result.success && result.data) {
+          setDashboardStats(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      }
+    };
+
+    if (activePage === 'Dashboard') {
+      loadDashboardStats();
+    }
+  }, [activePage]);
+
+  // Fetch departments
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const result = await fetchDepartments();
+        if (result.success && result.data) {
+          setDepartments(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+      }
+    };
+    
+    loadDepartments();
+  }, []);
+
+  // Handle quick action - Add New Employee
+  const handleAddNewEmployee = () => {
+    form.resetFields();
+    form.setFieldsValue({
+      position: 'Staff',
+      status: 'active'
+    });
+    setIsAddEmployeeModalVisible(true);
+  };
+
+  // Handle employee form submission
+  const handleEmployeeFormSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      
+      // Add current admin ID for the created_by field
+      const adminId = userData?.data?.admin_id || 1;
+      
+      const result = await addEmployee({
+        ...values,
+        created_by: adminId
+      });
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Employee added successfully",
+        });
+        setIsAddEmployeeModalVisible(false);
+        
+        // Refresh dashboard stats if we're on the dashboard
+        if (activePage === 'Dashboard') {
+          const updatedStats = await fetchDashboardStats();
+          if (updatedStats.success && updatedStats.data) {
+            setDashboardStats(updatedStats.data);
+          }
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to add employee",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Form validation error:", error);
+    }
+  };
 
   // Handle logout
   const handleLogout = () => {
@@ -124,8 +225,8 @@ export function HrModule() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">+5 from last month</p>
+            <div className="text-2xl font-bold">{dashboardStats.totalEmployees}</div>
+            <p className="text-xs text-muted-foreground">Active employees</p>
           </CardContent>
         </Card>
         <Card>
@@ -134,8 +235,8 @@ export function HrModule() {
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-muted-foreground">4 in final interview stage</p>
+            <div className="text-2xl font-bold">{dashboardStats.openPositions}</div>
+            <p className="text-xs text-muted-foreground">in final interview stage</p>
           </CardContent>
         </Card>
         <Card>
@@ -144,7 +245,7 @@ export function HrModule() {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">18</div>
+            <div className="text-2xl font-bold">{dashboardStats.upcomingReviews}</div>
             <p className="text-xs text-muted-foreground">Next week</p>
           </CardContent>
         </Card>
@@ -154,7 +255,7 @@ export function HrModule() {
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7</div>
+            <div className="text-2xl font-bold">{dashboardStats.pendingLeaves}</div>
             <p className="text-xs text-muted-foreground">Pending approval</p>
           </CardContent>
         </Card>
@@ -165,7 +266,11 @@ export function HrModule() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            {quickActions.map((action) => (
+            <Button variant="outline" className="justify-start" onClick={handleAddNewEmployee}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add New Employee
+            </Button>
+            {quickActions.slice(1).map((action) => (
               <Button key={action.name} variant="outline" className="justify-start">
                 <action.icon className="mr-2 h-4 w-4" />
                 {action.name}
@@ -195,6 +300,75 @@ export function HrModule() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Add Employee Modal */}
+      <Modal
+        title="Add New Employee"
+        open={isAddEmployeeModalVisible}
+        onOk={handleEmployeeFormSubmit}
+        onCancel={() => setIsAddEmployeeModalVisible(false)}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+        >
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[{ required: true, message: 'Please enter employee name' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="position"
+            label="Position"
+            initialValue="Staff"
+            rules={[{ required: true, message: 'Please enter position' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="department_id"
+            label="Department"
+            rules={[{ required: true, message: 'Please select department' }]}
+          >
+            <Select>
+              {departments.map(dept => (
+                <Select.Option key={dept.department_id} value={dept.department_id}>
+                  {dept.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: 'Please enter email' },
+              { type: 'email', message: 'Please enter a valid email' },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="phone"
+            label="Phone"
+            rules={[{ required: true, message: 'Please enter phone number' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="status"
+            label="Status"
+            initialValue="active"
+          >
+            <Select>
+              <Select.Option value="active">Active</Select.Option>
+              <Select.Option value="inactive">Inactive</Select.Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 
