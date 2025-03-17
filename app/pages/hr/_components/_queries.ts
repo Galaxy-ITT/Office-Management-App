@@ -3,6 +3,7 @@
 import pool from "@/app/database/connection";
 import { RowDataPacket, FieldPacket } from "mysql2/promise";
 import { v4 as uuidv4 } from 'uuid';
+import { sendRoleAssignmentNotification } from "@/server-side/adminEmail";
 
 // Define department interfaces
 export interface Department {
@@ -536,5 +537,382 @@ export async function fetchDashboardStats(): Promise<{
       success: false,
       error: error?.message || "Failed to fetch dashboard statistics"
     };
+  }
+}
+
+// Role interfaces
+export interface Role {
+  role_id: string;
+  role_name: string;
+  employee_id: string;
+  employee_name: string;
+  department_id: number | null;
+  department_name: string | null;
+  description: string | null;
+  assigned_by: number;
+  admin_name: string;
+  date_assigned: string;
+  status: 'active' | 'inactive';
+}
+
+export interface RoleInput {
+  role_name: string;
+  employee_id: string;
+  department_id: number | null;
+  description?: string;
+  assigned_by: number;
+  status: 'active' | 'inactive';
+}
+
+// Fetch all roles
+export async function fetchRoles(): Promise<{ 
+  success: boolean; 
+  data?: Role[]; 
+  error?: string 
+}> {
+  try {
+    const query = `
+      SELECT 
+        r.*,
+        e.name as employee_name,
+        d.name as department_name,
+        a.name as admin_name
+      FROM 
+        roles_table r
+      JOIN 
+        employees_table e ON r.employee_id = e.employee_id
+      LEFT JOIN 
+        departments_table d ON r.department_id = d.department_id
+      JOIN 
+        lists_of_admins a ON r.assigned_by = a.admin_id
+      ORDER BY 
+        r.role_name ASC, e.name ASC
+    `;
+    
+    const [roles] = await pool.query(query) as [RowDataPacket[], FieldPacket[]];
+    
+    if (Array.isArray(roles)) {
+      return {
+        success: true,
+        data: roles.map(role => ({
+          role_id: role.role_id,
+          role_name: role.role_name,
+          employee_id: role.employee_id,
+          employee_name: role.employee_name,
+          department_id: role.department_id,
+          department_name: role.department_name,
+          description: role.description,
+          assigned_by: role.assigned_by,
+          admin_name: role.admin_name,
+          date_assigned: role.date_assigned instanceof Date 
+            ? role.date_assigned.toISOString() 
+            : role.date_assigned,
+          status: role.status
+        }))
+      };
+    }
+    
+    return {
+      success: true,
+      data: []
+    };
+    
+  } catch (error: any) {
+    console.error("Error fetching roles:", error);
+    return {
+      success: false,
+      error: error?.message || "Failed to fetch roles"
+    };
+  }
+}
+
+// Add new role
+export async function addRole(roleData: RoleInput): Promise<{ 
+  success: boolean; 
+  message?: string;
+  role_id?: string;
+  error?: string 
+}> {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const roleId = uuidv4();
+    
+    const insertQuery = `
+      INSERT INTO roles_table (
+        role_id,
+        role_name, 
+        employee_id, 
+        department_id, 
+        description,
+        assigned_by,
+        status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    await connection.execute(insertQuery, [
+      roleId,
+      roleData.role_name,
+      roleData.employee_id,
+      roleData.department_id,
+      roleData.description || null,
+      roleData.assigned_by,
+      roleData.status
+    ]);
+    
+    // Get employee details for email notification
+    const employeeQuery = `
+      SELECT e.name, e.email, d.name as department_name
+      FROM employees_table e
+      LEFT JOIN departments_table d ON d.department_id = ?
+      WHERE e.employee_id = ?
+    `;
+    
+    const [employeeResults] = await connection.query(employeeQuery, [
+      roleData.department_id, 
+      roleData.employee_id
+    ]) as [RowDataPacket[], FieldPacket[]];
+    
+    // Generate admin credentials and create admin account
+    let username = '';
+    let password = '';
+    let adminId = null;
+    
+    if (employeeResults.length > 0) {
+      const employee = employeeResults[0];
+      
+      // Generate a username based on employee name (first name + first letter of last name)
+      const nameParts = employee.name.split(' ');
+      const firstName = nameParts[0].toLowerCase();
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1].toLowerCase() : '';
+      username = lastName ? `${firstName}.${lastName.charAt(0)}` : firstName;
+      
+      // Check if username already exists and append a number if needed
+      const [existingUsers] = await connection.query(
+        "SELECT username FROM lists_of_admins WHERE username LIKE ?", 
+        [`${username}%`]
+      ) as [RowDataPacket[], FieldPacket[]];
+      
+      if (existingUsers.length > 0) {
+        username = `${username}${existingUsers.length + 1}`;
+      }
+      
+      // Generate a random password (8 characters)
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      password = Array(8).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+      
+      // Hash password in a real application, but for this example we'll use plaintext
+      // const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Insert into admin table
+      const adminInsertQuery = `
+        INSERT INTO lists_of_admins (
+          name, 
+          email, 
+          username, 
+          role, 
+          password
+        ) VALUES (?, ?, ?, ?, ?)
+      `;
+      
+      const [adminResult] = await connection.execute(adminInsertQuery, [
+        employee.name,
+        employee.email,
+        username,
+        roleData.role_name,
+        password // In production, use hashedPassword
+      ]) as [any, FieldPacket[]];
+      
+      adminId = adminResult.insertId;
+    }
+    
+    await connection.commit();
+    
+    // Send email notification if employee email is available
+    if (employeeResults.length > 0 && adminId) {
+      const employee = employeeResults[0];
+      
+      // Send the notification email with login credentials
+      await sendRoleAssignmentNotification(
+        employee.email,
+        employee.name,
+        roleData.role_name,
+        employee.department_name,
+        roleData.description || null,
+        username,
+        password
+      );
+    }
+    
+    return {
+      success: true,
+      message: "Role assigned successfully and admin account created",
+      role_id: roleId
+    };
+    
+  } catch (error: any) {
+    await connection.rollback();
+    console.error("Error adding role:", error);
+    
+    return {
+      success: false,
+      error: error?.message || "Failed to assign role"
+    };
+  } finally {
+    connection.release();
+  }
+}
+
+// Update role
+export async function updateRole(roleId: string, roleData: Partial<RoleInput>): Promise<{ 
+  success: boolean; 
+  message?: string;
+  error?: string 
+}> {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    // Get current role details before update
+    const [currentRoleResult] = await connection.query(
+      `SELECT * FROM roles_table WHERE role_id = ?`,
+      [roleId]
+    ) as [RowDataPacket[], FieldPacket[]];
+    
+    if (currentRoleResult.length === 0) {
+      return {
+        success: false,
+        error: "Role not found"
+      };
+    }
+    
+    const currentRole = currentRoleResult[0];
+    
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    
+    if (roleData.role_name !== undefined) {
+      updateFields.push("role_name = ?");
+      updateValues.push(roleData.role_name);
+    }
+    
+    if (roleData.employee_id !== undefined) {
+      updateFields.push("employee_id = ?");
+      updateValues.push(roleData.employee_id);
+    }
+    
+    if (roleData.department_id !== undefined) {
+      updateFields.push("department_id = ?");
+      updateValues.push(roleData.department_id);
+    }
+    
+    if (roleData.description !== undefined) {
+      updateFields.push("description = ?");
+      updateValues.push(roleData.description);
+    }
+    
+    if (roleData.status !== undefined) {
+      updateFields.push("status = ?");
+      updateValues.push(roleData.status);
+    }
+    
+    // If nothing to update, return early
+    if (updateFields.length === 0) {
+      return {
+        success: false,
+        error: "No fields to update"
+      };
+    }
+    
+    const updateQuery = `
+      UPDATE roles_table 
+      SET ${updateFields.join(", ")}
+      WHERE role_id = ?
+    `;
+    
+    updateValues.push(roleId);
+    
+    await connection.execute(updateQuery, updateValues);
+    
+    // Update admin entry if role name changed
+    if (roleData.role_name !== undefined) {
+      // Get employee email
+      const [employeeResult] = await connection.query(
+        `SELECT e.email FROM employees_table e WHERE e.employee_id = ?`,
+        [currentRole.employee_id]
+      ) as [RowDataPacket[], FieldPacket[]];
+      
+      if (employeeResult.length > 0) {
+        const employeeEmail = employeeResult[0].email;
+        
+        // Update admin role
+        await connection.execute(
+          `UPDATE lists_of_admins SET role = ? WHERE email = ?`,
+          [roleData.role_name, employeeEmail]
+        );
+        
+        // Notify admin of update
+        const { notifyAdminUpdate } = await import('@/server-side/adminEmail');
+        await notifyAdminUpdate(employeeEmail);
+      }
+    }
+    
+    await connection.commit();
+    
+    return {
+      success: true,
+      message: "Role updated successfully"
+    };
+    
+  } catch (error: any) {
+    await connection.rollback();
+    console.error("Error updating role:", error);
+    
+    return {
+      success: false,
+      error: error?.message || "Failed to update role"
+    };
+  } finally {
+    connection.release();
+  }
+}
+
+// Delete role
+export async function deleteRole(roleId: string): Promise<{ 
+  success: boolean; 
+  message?: string;
+  error?: string 
+}> {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    const deleteQuery = `
+      DELETE FROM roles_table
+      WHERE role_id = ?
+    `;
+    
+    await connection.execute(deleteQuery, [roleId]);
+    await connection.commit();
+    
+    return {
+      success: true,
+      message: "Role deleted successfully"
+    };
+    
+  } catch (error: any) {
+    await connection.rollback();
+    console.error("Error deleting role:", error);
+    
+    return {
+      success: false,
+      error: error?.message || "Failed to delete role"
+    };
+  } finally {
+    connection.release();
   }
 } 

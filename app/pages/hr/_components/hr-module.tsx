@@ -54,6 +54,7 @@ import ReportsAnalytics from './ReportsAnalytics'
 import TrainingDevelopment from './TrainingDevelopment'
 import AttendanceManagement from './AttendanceManagement'
 import DepartmentManagement from './DepartmentManagement'
+import RolesManagement from './RolesManagement'
 import { 
   fetchDashboardStats,
   addEmployee,
@@ -74,6 +75,7 @@ const pages = [
   { name: 'Training and Development', icon: GraduationCap },
   { name: 'Reports and Analytics', icon: LineChart },
   { name: 'Department Management', icon: Briefcase },
+  { name: 'Roles Management', icon: UserCheck },
 ]
 
 const quickActions = [
@@ -440,7 +442,8 @@ export function HrModule() {
             activePage === 'Recruitment' ? <Recruitment /> :
             activePage === 'Reports and Analytics' ? <ReportsAnalytics /> :
             activePage === 'Training and Development' ? <TrainingDevelopment /> : 
-            activePage === 'Department Management' ? <DepartmentManagement /> : ""
+            activePage === 'Department Management' ? <DepartmentManagement /> :
+            activePage === 'Roles Management' ? <RolesManagement /> : ""
           }
         </main>
       </div>

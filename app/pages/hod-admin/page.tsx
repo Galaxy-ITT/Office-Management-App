@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import AdminDashboard from "@/components/admin-dashboard"
 
 export const metadata: Metadata = {
   title: "Admin Dashboard",
@@ -7,6 +6,10 @@ export const metadata: Metadata = {
 }
 
 export default function DashboardPage() {
-  return <AdminDashboard />
+  return <>
+  <div>
+    Working on it!
+  </div>
+  </>
 }
 

@@ -166,3 +166,67 @@ export async function sendAdminLoginNotification(email: string, role: string): P
     return false;
   }
 }
+
+export async function sendRoleAssignmentNotification(
+  to: string,
+  employeeName: string,
+  roleName: string,
+  departmentName: string | null,
+  description: string | null,
+  username?: string,
+  password?: string
+): Promise<boolean> {
+  try {
+    const subject = "New Role Assignment and Account Details - Office Management";
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+      <h2 style="color: #2d89ef; text-align: center;">Role Assignment Notification</h2>
+      <p>Dear <strong>${employeeName}</strong>,</p>
+      <p>We are pleased to inform you that you have been assigned a new role in our organization:</p>
+      
+      <div style="background: #f3f3f3; padding: 15px; border-radius: 6px; margin: 15px 0;">
+        <p><strong>Role:</strong> ${roleName}</p>
+        ${departmentName ? `<p><strong>Department:</strong> ${departmentName}</p>` : ''}
+        ${description ? `<p><strong>Description:</strong> ${description}</p>` : ''}
+      </div>
+      
+      <p>This assignment is effective immediately.</p>
+
+      ${username && password ? `
+      <h3 style="color: #2d89ef; margin-top: 20px;">Access Your Dashboard</h3>
+      <p>We've created an administrator account for you to access the OfficeManagement system. Below are your login credentials:</p>
+      
+      <div style="background: #f3f3f3; padding: 15px; border-radius: 6px; margin: 15px 0;">
+        <p><strong>Username:</strong> ${username}</p>
+        <p><strong>Password:</strong> ${password}</p>
+      </div>
+      
+      <p><a href="http://localhost:3000/pages/admins-login" style="background: #2d89ef; color: #fff; padding: 10px 15px; text-decoration: none; border-radius: 4px; display: inline-block;">Log in to OfficeManagement</a></p>
+      
+      <p>For security reasons, we recommend changing your password immediately after your first login.</p>
+      <p><a href="http://localhost:3000/pages/change-password-admins" style="color: #2d89ef;">Change Password</a></p>
+      ` : ''}
+
+      <hr style="border: 0; height: 1px; background: #ddd; margin: 20px 0;">
+      
+      <p>Please contact your supervisor or HR department if you have any questions regarding your new responsibilities.</p>
+      
+      <p style="text-align: center; color: #888;">Best regards, <br> <strong>Office Management Team</strong></p>
+    </div>
+    `;
+
+    // Send email
+    const info = await transporter.sendMail({
+      from: `"Office Management" <${process.env.EMAIL}>`,
+      to,
+      subject,
+      html,
+    });
+
+    console.log(`📧 Role assignment notification sent successfully to ${to}`);
+    return !!info.messageId;
+  } catch (error) {
+    console.error("❌ Error sending role assignment notification:", error);
+    return false;
+  }
+}
