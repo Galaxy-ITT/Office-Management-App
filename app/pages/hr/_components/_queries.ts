@@ -640,6 +640,29 @@ export async function addRole(roleData: RoleInput): Promise<{
     
     const roleId = uuidv4();
     
+    // Get employee details for email notification
+    const employeeQuery = `
+      SELECT e.name, e.email, d.name as department_name
+      FROM employees_table e
+      LEFT JOIN departments_table d ON d.department_id = ?
+      WHERE e.employee_id = ?
+    `;
+    
+    const [employeeResults] = await connection.query(employeeQuery, [
+      roleData.department_id || null,
+      roleData.employee_id
+    ]) as [RowDataPacket[], FieldPacket[]];
+    
+    if (employeeResults.length === 0) {
+      return {
+        success: false,
+        error: "Employee not found"
+      };
+    }
+    
+    const employee = employeeResults[0];
+    
+    // Insert the role into roles_table
     const insertQuery = `
       INSERT INTO roles_table (
         role_id,
@@ -662,79 +685,74 @@ export async function addRole(roleData: RoleInput): Promise<{
       roleData.status
     ]);
     
-    // Get employee details for email notification
-    const employeeQuery = `
-      SELECT e.name, e.email, d.name as department_name
-      FROM employees_table e
-      LEFT JOIN departments_table d ON d.department_id = ?
-      WHERE e.employee_id = ?
-    `;
+    // Generate shorter username (max ~4 chars)
+    const nameParts = employee.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
     
-    const [employeeResults] = await connection.query(employeeQuery, [
-      roleData.department_id, 
-      roleData.employee_id
-    ]) as [RowDataPacket[], FieldPacket[]];
+    // Take first initial + first 3 chars of last name (or fewer if last name is shorter)
+    const firstInitial = firstName.charAt(0);
+    const lastNameShort = lastName.substring(0, 3);
+    const baseUsername = (firstInitial + lastNameShort).toLowerCase().replace(/[^a-z0-9]/g, '');
     
-    // Generate admin credentials and create admin account
-    let username = '';
-    let password = '';
-    let adminId = null;
+    // Always generate a new unique username
+    let isUsernameUnique = false;
+    let attemptCount = 0;
+    let username = baseUsername;
     
-    if (employeeResults.length > 0) {
-      const employee = employeeResults[0];
-      
-      // Generate a username based on employee name (first name + first letter of last name)
-      const nameParts = employee.name.split(' ');
-      const firstName = nameParts[0].toLowerCase();
-      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1].toLowerCase() : '';
-      username = lastName ? `${firstName}.${lastName.charAt(0)}` : firstName;
-      
-      // Check if username already exists and append a number if needed
-      const [existingUsers] = await connection.query(
-        "SELECT username FROM lists_of_admins WHERE username LIKE ?", 
-        [`${username}%`]
-      ) as [RowDataPacket[], FieldPacket[]];
-      
-      if (existingUsers.length > 0) {
-        username = `${username}${existingUsers.length + 1}`;
+    while (!isUsernameUnique && attemptCount < 10) {
+      // Add single digit if needed after first attempt to keep it short
+      if (attemptCount > 0) {
+        username = baseUsername + attemptCount;
       }
       
-      // Generate a random password (8 characters)
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      password = Array(8).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+      // Check if username exists
+      const [existingUsername] = await connection.query(
+        `SELECT username FROM lists_of_admins WHERE username = ?`,
+        [username]
+      ) as [RowDataPacket[], FieldPacket[]];
       
-      // Hash password in a real application, but for this example we'll use plaintext
-      // const hashedPassword = await bcrypt.hash(password, 10);
-      
-      // Insert into admin table
-      const adminInsertQuery = `
-        INSERT INTO lists_of_admins (
-          name, 
-          email, 
-          username, 
-          role, 
-          password
-        ) VALUES (?, ?, ?, ?, ?)
-      `;
-      
-      const [adminResult] = await connection.execute(adminInsertQuery, [
-        employee.name,
-        employee.email,
-        username,
-        roleData.role_name,
-        password // In production, use hashedPassword
-      ]) as [any, FieldPacket[]];
-      
-      adminId = adminResult.insertId;
+      if (existingUsername.length === 0) {
+        isUsernameUnique = true;
+      } else {
+        attemptCount++;
+      }
     }
+    
+    if (!isUsernameUnique) {
+      // If we still have collisions after 10 attempts, add 2 random digits
+      username = baseUsername + Math.floor(Math.random() * 100);
+    }
+    
+    // Generate random password (keeping this the same for security)
+    const password = Math.random().toString(36).slice(2, 10) + 
+               Math.random().toString(36).slice(2, 10).toUpperCase() + 
+               Math.floor(Math.random() * 10);
+    
+    // Always create a new admin account with role="HOD"
+    const adminInsertQuery = `
+      INSERT INTO lists_of_admins (
+        name,
+        email,
+        username,
+        role,
+        password
+      ) VALUES (?, ?, ?, 'HOD', ?)
+    `;
+    
+    const [adminResult] = await connection.execute(adminInsertQuery, [
+      employee.name,
+      employee.email,
+      username,
+      password
+    ]) as [any, FieldPacket[]];
+    
+    const adminId = adminResult.insertId;
     
     await connection.commit();
     
-    // Send email notification if employee email is available
-    if (employeeResults.length > 0 && adminId) {
-      const employee = employeeResults[0];
-      
-      // Send the notification email with login credentials
+    // Send email notification with login credentials
+    if (employeeResults.length > 0) {
       await sendRoleAssignmentNotification(
         employee.email,
         employee.name,
@@ -742,7 +760,7 @@ export async function addRole(roleData: RoleInput): Promise<{
         employee.department_name,
         roleData.description || null,
         username,
-        password
+        password // Always show actual password in email
       );
     }
     
@@ -755,6 +773,14 @@ export async function addRole(roleData: RoleInput): Promise<{
   } catch (error: any) {
     await connection.rollback();
     console.error("Error adding role:", error);
+    
+    // Handle specific errors
+    if (error.code === 'ER_DUP_ENTRY' && error.message.includes('username')) {
+      return {
+        success: false,
+        error: "Username already exists. Please try again."
+      };
+    }
     
     return {
       success: false,
