@@ -891,6 +891,30 @@ export async function deleteRole(roleId: string): Promise<{
   try {
     await connection.beginTransaction();
     
+    // Get role and employee details before deletion
+    const [roleDetails] = await connection.query(`
+      SELECT r.*, e.name as employee_name, e.email as employee_email
+      FROM roles_table r
+      JOIN employees_table e ON r.employee_id = e.employee_id
+      WHERE r.role_id = ?
+    `, [roleId]) as [RowDataPacket[], FieldPacket[]];
+    
+    if (roleDetails.length === 0) {
+      return {
+        success: false,
+        error: "Role not found"
+      };
+    }
+    
+    const role = roleDetails[0];
+    
+    // Delete related admin account if exists
+    await connection.execute(`
+      DELETE FROM lists_of_admins
+      WHERE email = ? AND role = ?
+    `, [role.employee_email, role.role_name]);
+    
+    // Delete the role
     const deleteQuery = `
       DELETE FROM roles_table
       WHERE role_id = ?
@@ -899,9 +923,17 @@ export async function deleteRole(roleId: string): Promise<{
     await connection.execute(deleteQuery, [roleId]);
     await connection.commit();
     
+    // Send notification email
+    const { sendAdminRemovalNotification } = await import('@/server-side/adminEmail');
+    await sendAdminRemovalNotification(
+      role.employee_name,
+      role.employee_email,
+      role.role_name
+    );
+    
     return {
       success: true,
-      message: "Role deleted successfully"
+      message: "Role deleted successfully and admin access revoked"
     };
     
   } catch (error: any) {
