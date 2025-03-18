@@ -32,10 +32,22 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { fetchDepartmentEmployees } from './_queries'
 
+// Define Employee interface
+interface Employee {
+  employee_id: string;
+  name: string;
+  position: string;
+  email: string;
+  phone: string;
+  status: 'active' | 'inactive';
+  department_id: number;
+  department_name?: string;
+}
+
 export default function DepartmentEmployees() {
   const { userData } = useContext(UserContext)
   const { toast } = useToast()
-  const [employees, setEmployees] = useState([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
 
@@ -44,9 +56,19 @@ export default function DepartmentEmployees() {
     const loadEmployees = async () => {
       setLoading(true)
       try {
-        const result = await fetchDepartmentEmployees(userData?.admin_id)
+        if (!userData?.admin_id) {
+          toast({
+            title: "Error",
+            description: "User ID not found",
+            variant: "destructive"
+          })
+          setLoading(false)
+          return
+        }
+        
+        const result = await fetchDepartmentEmployees(userData.admin_id)
         if (result.success && result.data) {
-          setEmployees(result.data)
+          setEmployees(result.data as Employee[])
         } else {
           toast({
             title: "Error",
@@ -80,26 +102,33 @@ export default function DepartmentEmployees() {
 
   // Refresh employee list
   const handleRefresh = async () => {
-    if (userData?.admin_id) {
-      setLoading(true)
-      try {
-        const result = await fetchDepartmentEmployees(userData.admin_id)
-        if (result.success && result.data) {
-          setEmployees(result.data)
-          toast({
-            title: "Refreshed",
-            description: "Employee list has been updated",
-          })
-        }
-      } catch (error) {
+    if (!userData?.admin_id) {
+      toast({
+        title: "Error",
+        description: "User ID not found",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    setLoading(true)
+    try {
+      const result = await fetchDepartmentEmployees(userData.admin_id)
+      if (result.success && result.data) {
+        setEmployees(result.data as Employee[])
         toast({
-          title: "Error",
-          description: "Failed to refresh employee list",
-          variant: "destructive"
+          title: "Refreshed",
+          description: "Employee list has been updated",
         })
-      } finally {
-        setLoading(false)
       }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh employee list",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
     }
   }
 

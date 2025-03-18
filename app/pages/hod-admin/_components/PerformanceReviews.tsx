@@ -57,66 +57,111 @@ import {
 } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { fetchPerformanceReviews, addReview, updateReview } from './_queries'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { fetchPerformanceReviews, addReview, updateReview, fetchDepartmentEmployees } from './_queries'
 
-// Form validation schema
-const reviewSchema = z.object({
-  employee_id: z.string().min(1, { message: "Employee is required" }),
-  subject: z.string().min(3, { message: "Subject must be at least 3 characters" }),
-  review_date: z.string().min(1, { message: "Date is required" }),
-  content: z.string().min(10, { message: "Content must be at least 10 characters" }),
-  rating: z.string().min(1, { message: "Rating is required" }),
-  status: z.string().default("pending")
-})
+// Define Employee interface
+interface Employee {
+  employee_id: string;
+  name: string;
+  position: string;
+  email: string;
+  phone: string;
+  status: 'active' | 'inactive';
+  department_id: number;
+  department_name?: string;
+}
 
-type ReviewFormValues = z.infer<typeof reviewSchema>
+// Define PerformanceReview interface
+interface PerformanceReview {
+  review_id: string;
+  employee_id: string;
+  employee_name: string;
+  reviewer_id: number;
+  reviewer_name: string;
+  review_date: string;
+  rating: number;
+  feedback: string;
+  goals: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  created_at: string;
+  updated_at: string;
+}
+
+// Form schema
+const reviewFormSchema = z.object({
+  employee_id: z.string().min(1, "Please select an employee"),
+  rating: z.string().min(1, "Please provide a rating"),
+  feedback: z.string().min(10, "Feedback must be at least 10 characters"),
+  goals: z.string().min(10, "Goals must be at least 10 characters"),
+  status: z.string().min(1, "Please select a status")
+});
+
+type ReviewFormValues = z.infer<typeof reviewFormSchema>;
 
 export default function PerformanceReviews() {
   const { userData } = useContext(UserContext)
   const { toast } = useToast()
-  const [performanceReviews, setPerformanceReviews] = useState([])
+  const [performanceReviews, setPerformanceReviews] = useState<PerformanceReview[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchText, setSearchText] = useState('')
-  const [employees, setEmployees] = useState([])
-  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  
+  // Dialog states
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [selectedReview, setSelectedReview] = useState(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [selectedReview, setSelectedReview] = useState<PerformanceReview | null>(null)
 
-  // Initialize form
+  // Form
   const form = useForm<ReviewFormValues>({
-    resolver: zodResolver(reviewSchema),
+    resolver: zodResolver(reviewFormSchema),
     defaultValues: {
-      employee_id: "",
-      subject: "",
-      review_date: new Date().toISOString().split('T')[0],
-      content: "",
-      rating: "3",
-      status: "pending"
+      employee_id: '',
+      rating: '3',
+      feedback: '',
+      goals: '',
+      status: 'pending'
     }
-  })
+  });
 
-  // Fetch performance reviews
+  // Fetch data
   useEffect(() => {
-    const loadPerformanceReviews = async () => {
+    const loadData = async () => {
       setLoading(true)
       try {
-        const result = await fetchPerformanceReviews(userData?.admin_id)
-        if (result.success && result.data) {
-          setPerformanceReviews(result.data)
+        if (!userData?.admin_id) {
+          toast({
+            title: "Error",
+            description: "Admin ID not found",
+            variant: "destructive"
+          })
+          setLoading(false)
+          return
+        }
+        
+        // Fetch performance reviews
+        const reviewsResult = await fetchPerformanceReviews(userData.admin_id)
+        if (reviewsResult.success && reviewsResult.data) {
+          setPerformanceReviews(reviewsResult.data as PerformanceReview[])
         } else {
           toast({
             title: "Error",
-            description: result.error || "Failed to load performance reviews",
+            description: reviewsResult.error || "Failed to load performance reviews",
             variant: "destructive"
           })
         }
+
+        // Fetch employees for the form
+        const employeesResult = await fetchDepartmentEmployees(userData.admin_id)
+        if (employeesResult.success && employeesResult.data) {
+          setEmployees(employeesResult.data as Employee[])
+        }
       } catch (error) {
-        console.error("Error loading performance reviews:", error)
+        console.error("Error loading data:", error)
         toast({
           title: "Error",
           description: "An error occurred while loading data",
@@ -127,114 +172,168 @@ export default function PerformanceReviews() {
       }
     }
 
-    const loadEmployees = async () => {
-      try {
-        const result = await fetchDepartmentEmployees(userData?.admin_id)
-        if (result.success && result.data) {
-          setEmployees(result.data)
-        }
-      } catch (error) {
-        console.error("Error loading employees:", error)
-      }
-    }
-
     if (userData?.admin_id) {
-      loadPerformanceReviews()
-      loadEmployees()
+      loadData()
     }
   }, [userData, toast])
 
   // Handle search
-  const filteredPerformanceReviews = performanceReviews.filter((review) =>
+  const filteredReviews = performanceReviews.filter((review) =>
     Object.values(review).some((val) =>
       val?.toString().toLowerCase().includes(searchText.toLowerCase())
     )
   )
 
-  // View review details
-  const handleViewReview = (review) => {
+  // Refresh data function
+  const refreshData = async () => {
+    if (!userData?.admin_id) {
+      toast({
+        title: "Error",
+        description: "Admin ID not found",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await fetchPerformanceReviews(userData.admin_id)
+      if (result.success && result.data) {
+        setPerformanceReviews(result.data as PerformanceReview[])
+        toast({
+          title: "Success",
+          description: "Performance reviews refreshed"
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to refresh data",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error)
+      toast({
+        title: "Error",
+        description: "An error occurred while refreshing data",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle view review
+  const handleViewReview = (review: PerformanceReview) => {
     setSelectedReview(review)
     setViewDialogOpen(true)
   }
 
-  // Edit review
-  const handleEditReview = (review) => {
+  // Handle edit review
+  const handleEditReview = (review: PerformanceReview) => {
     setSelectedReview(review)
     form.reset({
       employee_id: review.employee_id,
-      subject: review.subject,
-      review_date: review.date,
-      content: review.content,
       rating: review.rating.toString(),
+      feedback: review.feedback,
+      goals: review.goals,
       status: review.status
     })
     setEditDialogOpen(true)
   }
 
-  // Add new review
+  // Handle add new review
   const handleAddReview = () => {
     form.reset({
-      employee_id: "",
-      subject: "",
-      review_date: new Date().toISOString().split('T')[0],
-      content: "",
-      rating: "3",
-      status: "pending"
+      employee_id: '',
+      rating: '3',
+      feedback: '',
+      goals: '',
+      status: 'pending'
     })
     setAddDialogOpen(true)
   }
 
-  // Submit form
+  // Form submission
   const onSubmit = async (data: ReviewFormValues) => {
+    if (!userData?.admin_id) {
+      toast({
+        title: "Error",
+        description: "Admin ID is required",
+        variant: "destructive"
+      })
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      let result
-      
+      // Convert rating to number
+      const submitData = {
+        ...data,
+        rating: parseInt(data.rating, 10),
+        reviewer_id: userData.admin_id
+      }
+
+      let result;
       if (editDialogOpen && selectedReview) {
-        result = await updateReview(selectedReview.id, {
-          ...data,
-          department_id: userData?.department_id,
-          reviewed_by: userData?.admin_id
-        })
+        // Update existing review
+        result = await updateReview(selectedReview.review_id, submitData)
       } else {
-        result = await addReview({
-          ...data,
-          department_id: userData?.department_id,
-          reviewed_by: userData?.admin_id
-        })
+        // Add new review
+        result = await addReview(submitData)
       }
 
       if (result.success) {
         toast({
           title: "Success",
-          description: result.message || `Review ${editDialogOpen ? "updated" : "created"} successfully`,
+          description: result.message || `Review ${editDialogOpen ? 'updated' : 'created'} successfully`
         })
         
         // Refresh data
-        const refreshResult = await fetchPerformanceReviews(userData?.admin_id)
-        if (refreshResult.success && refreshResult.data) {
-          setPerformanceReviews(refreshResult.data)
-        }
+        refreshData()
         
-        // Close dialogs
+        // Close dialog
         setAddDialogOpen(false)
         setEditDialogOpen(false)
       } else {
         toast({
           title: "Error",
-          description: result.error || `Failed to ${editDialogOpen ? "update" : "create"} review`,
+          description: result.error || `Failed to ${editDialogOpen ? 'update' : 'create'} review`,
           variant: "destructive"
         })
       }
     } catch (error) {
-      console.error(`Error ${editDialogOpen ? "updating" : "creating"} review:`, error)
+      console.error("Error submitting review:", error)
       toast({
         title: "Error",
-        description: `An error occurred while ${editDialogOpen ? "updating" : "creating"} the review`,
+        description: "An error occurred while processing your request",
         variant: "destructive"
       })
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  // Get status badge
+  const getStatusBadge = (status: string): "default" | "destructive" | "outline" | "secondary" | "success" => {
+    switch (status) {
+      case 'completed':
+        return "success"
+      case 'in_progress':
+        return "default"
+      case 'pending':
+        return "outline"
+      default:
+        return "secondary"
     }
   }
 
@@ -245,7 +344,7 @@ export default function PerformanceReviews() {
           <div>
             <CardTitle>Performance Reviews</CardTitle>
             <CardDescription>
-              Manage and view performance reviews
+              Manage and conduct employee performance evaluations
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -258,17 +357,7 @@ export default function PerformanceReviews() {
                 onChange={(e) => setSearchText(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="icon" onClick={() => {
-              setLoading(true)
-              fetchPerformanceReviews(userData?.admin_id)
-                .then(result => {
-                  if (result.success && result.data) {
-                    setPerformanceReviews(result.data)
-                  }
-                  setLoading(false)
-                })
-                .catch(() => setLoading(false))
-            }}>
+            <Button variant="outline" size="icon" onClick={refreshData}>
               <RefreshCw className="h-4 w-4" />
             </Button>
             <Button onClick={handleAddReview}>
@@ -288,7 +377,7 @@ export default function PerformanceReviews() {
             <Star className="h-12 w-12 mx-auto text-muted-foreground" />
             <h3 className="mt-4 text-lg font-semibold">No reviews found</h3>
             <p className="text-muted-foreground">
-              There are no performance reviews available.
+              Start by creating a new performance review.
             </p>
           </div>
         ) : (
@@ -296,43 +385,60 @@ export default function PerformanceReviews() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Subject</TableHead>
                   <TableHead>Employee</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Review Date</TableHead>
+                  <TableHead>Rating</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPerformanceReviews.length === 0 ? (
+                {filteredReviews.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-4">
                       No reviews found matching your search
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredPerformanceReviews.map((review) => (
-                    <TableRow key={review.id}>
-                      <TableCell className="font-medium">{review.subject}</TableCell>
-                      <TableCell>{review.employee}</TableCell>
+                  filteredReviews.map((review) => (
+                    <TableRow key={review.review_id}>
+                      <TableCell className="font-medium">{review.employee_name}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                          {review.date}
+                          {formatDate(review.review_date)}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={review.status === 'completed' ? 'default' : 'secondary'}>
-                          {review.status.charAt(0).toUpperCase() + review.status.slice(1)}
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              className={`h-4 w-4 ${i < review.rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`} 
+                            />
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadge(review.status)}>
+                          {review.status.charAt(0).toUpperCase() + review.status.slice(1).replace('_', ' ')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleViewReview(review)}>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewReview(review)}
+                          >
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleEditReview(review)}>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditReview(review)}
+                          >
                             <Edit className="h-4 w-4 mr-1" />
                             Edit
                           </Button>
@@ -347,80 +453,6 @@ export default function PerformanceReviews() {
         )}
       </CardContent>
 
-      {/* View Review Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Performance Review Details</DialogTitle>
-            <DialogDescription>
-              Viewing review details
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedReview && (
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <h3 className="font-semibold">Subject</h3>
-                <p>{selectedReview.subject}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <h3 className="font-semibold">Employee</h3>
-                  <p>{selectedReview.employee}</p>
-                </div>
-                <div className="grid gap-2">
-                  <h3 className="font-semibold">Review Date</h3>
-                  <p>{selectedReview.date}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <h3 className="font-semibold">Rating</h3>
-                  <div className="flex items-center">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star 
-                        key={i} 
-                        className={`h-5 w-5 ${i < selectedReview.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-                      />
-                    ))}
-                    <span className="ml-2">{selectedReview.rating}/5</span>
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <h3 className="font-semibold">Status</h3>
-                  <Badge variant={selectedReview.status === 'completed' ? 'default' : 'secondary'}>
-                    {selectedReview.status.charAt(0).toUpperCase() + selectedReview.status.slice(1)}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="grid gap-2">
-                <h3 className="font-semibold">Review Content</h3>
-                <div className="rounded-md border p-4 text-sm">
-                  {selectedReview.content || "No content provided"}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
-              Close
-            </Button>
-            {selectedReview && (
-              <Button onClick={() => {
-                setViewDialogOpen(false)
-                handleEditReview(selectedReview)
-              }}>
-                Edit Review
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Add/Edit Review Dialog */}
       <Dialog open={addDialogOpen || editDialogOpen} onOpenChange={(open) => {
         if (!open) {
@@ -428,18 +460,15 @@ export default function PerformanceReviews() {
           setEditDialogOpen(false)
         }
       }}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>
-              {editDialogOpen ? "Edit Performance Review" : "Create New Performance Review"}
-            </DialogTitle>
+            <DialogTitle>{editDialogOpen ? 'Edit Performance Review' : 'New Performance Review'}</DialogTitle>
             <DialogDescription>
               {editDialogOpen 
-                ? "Update the performance review details" 
-                : "Create a new performance review for an employee"}
+                ? 'Update the details of this performance review.' 
+                : 'Create a new performance review for an employee.'}
             </DialogDescription>
           </DialogHeader>
-          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -449,12 +478,13 @@ export default function PerformanceReviews() {
                   <FormItem>
                     <FormLabel>Employee</FormLabel>
                     <Select 
+                      disabled={editDialogOpen || isSubmitting}
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select an employee" />
+                          <SelectValue placeholder="Select employee" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -472,72 +502,63 @@ export default function PerformanceReviews() {
               
               <FormField
                 control={form.control}
-                name="subject"
+                name="rating"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Subject</FormLabel>
+                    <FormLabel>Rating</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      disabled={isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select rating" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <SelectItem key={rating} value={rating.toString()}>
+                            {rating} {rating === 1 ? 'Star' : 'Stars'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="feedback"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Feedback</FormLabel>
                     <FormControl>
-                      <Input placeholder="Review subject" {...field} />
+                      <Textarea 
+                        placeholder="Provide detailed feedback about the employee's performance..." 
+                        className="min-h-[100px]"
+                        disabled={isSubmitting}
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="review_date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Review Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="rating"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Rating</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select rating" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {[1, 2, 3, 4, 5].map((rating) => (
-                            <SelectItem key={rating} value={rating.toString()}>
-                              {rating} {rating === 1 ? 'Star' : 'Stars'}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
               <FormField
                 control={form.control}
-                name="content"
+                name="goals"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Review Content</FormLabel>
+                    <FormLabel>Goals & Objectives</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Enter detailed review feedback..." 
-                        rows={6}
+                        placeholder="Set goals and objectives for the upcoming period..." 
+                        className="min-h-[100px]"
+                        disabled={isSubmitting}
                         {...field} 
                       />
                     </FormControl>
@@ -555,6 +576,7 @@ export default function PerformanceReviews() {
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      disabled={isSubmitting}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -592,6 +614,69 @@ export default function PerformanceReviews() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* View Review Dialog */}
+      {selectedReview && (
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Performance Review Details</DialogTitle>
+              <DialogDescription>
+                Review for {selectedReview.employee_name} on {formatDate(selectedReview.review_date)}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <h3 className="font-semibold">Employee</h3>
+                <p>{selectedReview.employee_name}</p>
+              </div>
+              <div className="grid gap-2">
+                <h3 className="font-semibold">Reviewer</h3>
+                <p>{selectedReview.reviewer_name}</p>
+              </div>
+              <div className="grid gap-2">
+                <h3 className="font-semibold">Rating</h3>
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className={`h-5 w-5 ${i < selectedReview.rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}`} 
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <h3 className="font-semibold">Status</h3>
+                <Badge variant={getStatusBadge(selectedReview.status)}>
+                  {selectedReview.status.charAt(0).toUpperCase() + selectedReview.status.slice(1).replace('_', ' ')}
+                </Badge>
+              </div>
+              <div className="grid gap-2">
+                <h3 className="font-semibold">Feedback</h3>
+                <div className="rounded-md border p-4 text-sm">
+                  {selectedReview.feedback || "No feedback provided"}
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <h3 className="font-semibold">Goals & Objectives</h3>
+                <div className="rounded-md border p-4 text-sm">
+                  {selectedReview.goals || "No goals provided"}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+              <Button variant="outline" onClick={() => {
+                setViewDialogOpen(false)
+                handleEditReview(selectedReview)
+              }}>
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   )
-} 
+}

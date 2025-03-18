@@ -60,13 +60,21 @@ const quickActions = [
   { name: 'Assign New Task', icon: CheckSquare },
 ]
 
+// Define the interface for dashboard stats
+interface DashboardStats {
+  totalEmployees: number;
+  pendingProposals: number;
+  upcomingReviews: number;
+  pendingTasks: number;
+}
+
 export default function DashboardPage() {
   const [activePage, setActivePage] = useState('Dashboard')
   const { userData } = useContext(UserContext)
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
-  const [dashboardStats, setDashboardStats] = useState({
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     totalEmployees: 0,
     pendingProposals: 0,
     upcomingReviews: 0,
@@ -75,7 +83,7 @@ export default function DashboardPage() {
 
   // Get user name and format current date
   const userName = userData?.name || "Department Head"
-  const departmentName = userData?.department || "Department"
+  const departmentName = userData?.department_id || "Department"
   const currentDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -88,9 +96,14 @@ export default function DashboardPage() {
     const loadDashboardStats = async () => {
       try {
         setLoading(true)
-        const result = await fetchDashboardStats(userData?.admin_id);
+        if (!userData?.admin_id) {
+          setLoading(false)
+          return
+        }
+        
+        const result = await fetchDashboardStats(userData.admin_id);
         if (result.success && result.data) {
-          setDashboardStats(result.data);
+          setDashboardStats(result.data as unknown as DashboardStats);
         }
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);

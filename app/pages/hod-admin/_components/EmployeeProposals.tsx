@@ -49,15 +49,40 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { fetchProposals, reviewProposal } from './_queries'
 
+// Define interface for proposal data
+interface Proposal {
+  id: string;
+  proposal_id: string;
+  employee_id: string;
+  employee_name: string;
+  subject: string;
+  content: string;
+  submission_date: string;
+  status: string;
+  reviewed_by: number | null;
+  reviewer_name: string | null;
+  review_date: string | null;
+  review_note: string | null;
+}
+
+// Define interface for review data
+interface ReviewData {
+  record_id: string;
+  reviewed_by: number;
+  review_action: string;
+  review_note: string;
+  department: string;
+}
+
 export default function EmployeeProposals() {
   const { userData } = useContext(UserContext)
   const { toast } = useToast()
-  const [proposals, setProposals] = useState([])
+  const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
-  const [selectedProposal, setSelectedProposal] = useState(null)
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null)
   const [reviewStatus, setReviewStatus] = useState('approved')
   const [reviewNote, setReviewNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -67,9 +92,19 @@ export default function EmployeeProposals() {
     const loadProposals = async () => {
       setLoading(true)
       try {
-        const result = await fetchProposals(userData?.admin_id)
+        if (!userData?.admin_id) {
+          toast({
+            title: "Error",
+            description: "User ID not found",
+            variant: "destructive"
+          })
+          setLoading(false)
+          return
+        }
+        
+        const result = await fetchProposals(userData.admin_id)
         if (result.success && result.data) {
-          setProposals(result.data)
+          setProposals(result.data as Proposal[])
         } else {
           toast({
             title: "Error",
@@ -102,13 +137,13 @@ export default function EmployeeProposals() {
   )
 
   // Handle view proposal
-  const handleViewProposal = (proposal) => {
+  const handleViewProposal = (proposal: Proposal) => {
     setSelectedProposal(proposal)
     setViewDialogOpen(true)
   }
 
   // Handle review proposal
-  const handleReviewProposal = (proposal) => {
+  const handleReviewProposal = (proposal: Proposal) => {
     setSelectedProposal(proposal)
     setReviewStatus('approved')
     setReviewNote('')
@@ -117,17 +152,19 @@ export default function EmployeeProposals() {
 
   // Submit review
   const handleSubmitReview = async () => {
-    if (!selectedProposal) return
+    if (!selectedProposal || !userData?.admin_id || !userData?.department_name) return
 
     setSubmitting(true)
     try {
-      const result = await reviewProposal({
-        record_id: selectedProposal.id,
+      const reviewData: ReviewData = {
+        record_id: selectedProposal.proposal_id,
         reviewed_by: userData.admin_id,
         review_action: reviewStatus,
         review_note: reviewNote,
-        department: userData.department,
-      })
+        department: userData.department_name,
+      }
+      
+      const result = await reviewProposal(selectedProposal.proposal_id, reviewData)
 
       if (result.success) {
         toast({
@@ -137,7 +174,7 @@ export default function EmployeeProposals() {
         
         // Update proposal in the list
         setProposals(proposals.map(prop => 
-          prop.id === selectedProposal.id 
+          prop.proposal_id === selectedProposal.proposal_id 
             ? { ...prop, status: reviewStatus, review_note: reviewNote } 
             : prop
         ))
@@ -162,7 +199,7 @@ export default function EmployeeProposals() {
   }
 
   // Format date
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A"
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -234,11 +271,11 @@ export default function EmployeeProposals() {
                     filteredProposals.map((proposal) => (
                       <TableRow key={proposal.id}>
                         <TableCell className="font-medium">{proposal.subject}</TableCell>
-                        <TableCell>{proposal.from}</TableCell>
+                        <TableCell>{proposal.employee_name}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                            {formatDate(proposal.date)}
+                            {formatDate(proposal.submission_date)}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -290,7 +327,7 @@ export default function EmployeeProposals() {
             <DialogHeader>
               <DialogTitle>Proposal Details</DialogTitle>
               <DialogDescription>
-                Submitted on {formatDate(selectedProposal.date)}
+                Submitted on {formatDate(selectedProposal.submission_date)}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -300,11 +337,11 @@ export default function EmployeeProposals() {
               </div>
               <div>
                 <h3 className="font-semibold">From</h3>
-                <p>{selectedProposal.from}</p>
+                <p>{selectedProposal.employee_name}</p>
               </div>
               <div>
                 <h3 className="font-semibold">To</h3>
-                <p>{selectedProposal.to}</p>
+                <p>{selectedProposal.reviewer_name}</p>
               </div>
               <div>
                 <h3 className="font-semibold">Content</h3>
