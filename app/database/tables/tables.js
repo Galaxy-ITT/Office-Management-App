@@ -122,18 +122,18 @@ export async function createAllTables() {
       CREATE TABLE IF NOT EXISTS employees_table (
         employee_id VARCHAR(36) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        position VARCHAR(100) NOT NULL DEFAULT 'Staff',
+        email VARCHAR(255) NOT NULL UNIQUE,
+        phone VARCHAR(20),
+        position VARCHAR(100) NOT NULL,
         department_id INT,
-        email VARCHAR(255) NOT NULL,
-        phone VARCHAR(50) NOT NULL,
-        status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+        hire_date DATE,
+        status VARCHAR(20) DEFAULT 'active',
         created_by INT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (department_id) REFERENCES departments_table(department_id) ON DELETE SET NULL,
         FOREIGN KEY (created_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
-        INDEX idx_department (department_id),
-        INDEX idx_created_by (created_by)
+        INDEX idx_department_id (department_id)
       )
     `)
     console.log("employees_table created successfully")
@@ -161,6 +161,74 @@ export async function createAllTables() {
       )
     `)
     console.log("roles_table created successfully")
+
+  
+    // Create proposals_table - for employee proposals
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS proposals_table (
+        proposal_id VARCHAR(36) PRIMARY KEY,
+        employee_id VARCHAR(36) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        submission_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'pending',
+        reviewed_by INT,
+        review_date TIMESTAMP NULL,
+        review_note TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        FOREIGN KEY (reviewed_by) REFERENCES lists_of_admins(admin_id) ON DELETE SET NULL,
+        INDEX idx_employee_id (employee_id),
+        INDEX idx_status (status)
+      )
+    `)
+    console.log("proposals_table created successfully")
+
+    // Create performance_reviews_table - for employee performance reviews
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS performance_reviews_table (
+        review_id VARCHAR(36) PRIMARY KEY,
+        employee_id VARCHAR(36) NOT NULL,
+        reviewer_id INT NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        rating DECIMAL(3,1) NOT NULL,
+        review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        FOREIGN KEY (reviewer_id) REFERENCES lists_of_admins(admin_id) ON DELETE CASCADE,
+        INDEX idx_employee_id (employee_id),
+        INDEX idx_reviewer_id (reviewer_id)
+      )
+    `)
+    console.log("performance_reviews_table created successfully")
+
+    // Create tasks_table - for employee tasks and assignments
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tasks_table (
+        task_id VARCHAR(36) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        employee_id VARCHAR(36) NOT NULL,
+        assigned_by INT NOT NULL,
+        due_date DATE NOT NULL,
+        priority VARCHAR(20) DEFAULT 'medium',
+        status VARCHAR(20) DEFAULT 'pending',
+        completion_date TIMESTAMP NULL,
+        completion_note TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_by) REFERENCES lists_of_admins(admin_id) ON DELETE CASCADE,
+        INDEX idx_employee_id (employee_id),
+        INDEX idx_assigned_by (assigned_by),
+        INDEX idx_status (status)
+      )
+    `)
+    console.log("tasks_table created successfully")
 
     return { success: true, message: "All tables created successfully" }
   } catch (error) {
@@ -284,11 +352,14 @@ export async function table_files() {
         name VARCHAR(255) NOT NULL,
         description TEXT,
         head_of_department VARCHAR(255),
+        head_of_department_id INT,
         location VARCHAR(255),
         created_by INT NOT NULL,
         date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (created_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
-        INDEX idx_created_by (created_by)
+        FOREIGN KEY (head_of_department_id) REFERENCES lists_of_admins(admin_id) ON DELETE SET NULL,
+        INDEX idx_created_by (created_by),
+        INDEX idx_head_of_department (head_of_department_id)
       )
     `)
     console.log("departments_table created successfully")
