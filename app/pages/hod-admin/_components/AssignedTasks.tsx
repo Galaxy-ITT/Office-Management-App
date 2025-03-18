@@ -63,6 +63,32 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 
+// Define interfaces
+interface Task {
+  task_id: string;
+  id: string; // Aliased task_id used in UI
+  title: string;
+  description: string;
+  employee_id: string;
+  employee_name: string;
+  assigned_by: number;
+  assigner_name: string;
+  due_date: string;
+  priority: string;
+  status: string;
+  department_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Employee {
+  employee_id: string;
+  name: string;
+  email: string;
+  position: string;
+  department_id: number;
+}
+
 // Form validation schema
 const taskSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
@@ -78,14 +104,14 @@ type TaskFormValues = z.infer<typeof taskSchema>
 export default function AssignedTasks() {
   const { userData } = useContext(UserContext)
   const { toast } = useToast()
-  const [tasks, setTasks] = useState([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
-  const [employees, setEmployees] = useState([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [selectedTask, setSelectedTask] = useState(null)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Initialize form
@@ -106,9 +132,14 @@ export default function AssignedTasks() {
     const loadTasks = async () => {
       setLoading(true)
       try {
-        const result = await fetchAssignedTasks(userData?.admin_id)
+        // Add null check for admin_id
+        if (!userData?.admin_id) {
+          throw new Error("Admin ID is required")
+        }
+        
+        const result = await fetchAssignedTasks(userData.admin_id)
         if (result.success && result.data) {
-          setTasks(result.data)
+          setTasks(result.data as Task[])
         } else {
           toast({
             title: "Error",
@@ -130,9 +161,14 @@ export default function AssignedTasks() {
 
     const loadEmployees = async () => {
       try {
-        const result = await fetchDepartmentEmployees(userData?.admin_id)
+        // Add null check for admin_id
+        if (!userData?.admin_id) {
+          throw new Error("Admin ID is required")
+        }
+        
+        const result = await fetchDepartmentEmployees(userData.admin_id)
         if (result.success && result.data) {
-          setEmployees(result.data)
+          setEmployees(result.data as Employee[])
         }
       } catch (error) {
         console.error("Error loading employees:", error)
@@ -153,7 +189,7 @@ export default function AssignedTasks() {
   )
 
   // Format date for display
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -162,13 +198,13 @@ export default function AssignedTasks() {
   }
 
   // View task details
-  const handleViewTask = (task) => {
+  const handleViewTask = (task: Task): void => {
     setSelectedTask(task)
     setViewDialogOpen(true)
   }
 
   // Edit task
-  const handleEditTask = (task) => {
+  const handleEditTask = (task: Task): void => {
     setSelectedTask(task)
     form.reset({
       title: task.title,
@@ -182,7 +218,7 @@ export default function AssignedTasks() {
   }
 
   // Add new task
-  const handleAddTask = () => {
+  const handleAddTask = (): void => {
     form.reset({
       title: "",
       employee_id: "",
@@ -195,22 +231,27 @@ export default function AssignedTasks() {
   }
 
   // Submit form
-  const onSubmit = async (data: TaskFormValues) => {
+  const onSubmit = async (data: TaskFormValues): Promise<void> => {
     setIsSubmitting(true)
     try {
+      // Ensure admin_id and department_id are available
+      if (!userData?.admin_id || !userData?.department_id) {
+        throw new Error("Admin ID and Department ID are required")
+      }
+      
       let result
       
       if (editDialogOpen && selectedTask) {
-        result = await updateTask(selectedTask.id, {
+        result = await updateTask(selectedTask.task_id, {
           ...data,
-          department_id: userData?.department_id,
-          assigned_by: userData?.admin_id
+          department_id: userData.department_id,
+          assigned_by: userData.admin_id
         })
       } else {
         result = await addTask({
           ...data,
-          department_id: userData?.department_id,
-          assigned_by: userData?.admin_id
+          department_id: userData.department_id,
+          assigned_by: userData.admin_id
         })
       }
 
@@ -221,9 +262,11 @@ export default function AssignedTasks() {
         })
         
         // Refresh data
-        const refreshResult = await fetchAssignedTasks(userData?.admin_id)
-        if (refreshResult.success && refreshResult.data) {
-          setTasks(refreshResult.data)
+        if (userData?.admin_id) {
+          const refreshResult = await fetchAssignedTasks(userData.admin_id)
+          if (refreshResult.success && refreshResult.data) {
+            setTasks(refreshResult.data as Task[])
+          }
         }
         
         // Close dialogs
@@ -249,32 +292,32 @@ export default function AssignedTasks() {
   }
 
   // Get priority badge variant
-  const getPriorityBadge = (priority) => {
+  const getPriorityBadge = (priority: string): "default" | "destructive" | "secondary" | "outline" => {
     switch (priority) {
       case 'high':
-        return 'destructive'
+        return "destructive"
       case 'medium':
-        return 'default'
+        return "default"
       case 'low':
-        return 'secondary'
+        return "secondary"
       default:
-        return 'outline'
+        return "outline"
     }
   }
 
   // Get status badge variant
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string): "success" | "default" | "outline" | "destructive" => {
     switch (status) {
       case 'completed':
-        return 'success'
+        return "success"
       case 'in_progress':
-        return 'default'
+        return "default"
       case 'pending':
-        return 'outline'
+        return "outline"
       case 'canceled':
-        return 'destructive'
+        return "destructive"
       default:
-        return 'outline'
+        return "outline"
     }
   }
 
@@ -300,14 +343,23 @@ export default function AssignedTasks() {
             </div>
             <Button variant="outline" size="icon" onClick={() => {
               setLoading(true)
-              fetchAssignedTasks(userData?.admin_id)
-                .then(result => {
-                  if (result.success && result.data) {
-                    setTasks(result.data)
-                  }
-                  setLoading(false)
+              if (userData?.admin_id) {
+                fetchAssignedTasks(userData.admin_id)
+                  .then(result => {
+                    if (result.success && result.data) {
+                      setTasks(result.data as Task[])
+                    }
+                    setLoading(false)
+                  })
+                  .catch(() => setLoading(false))
+              } else {
+                setLoading(false)
+                toast({
+                  title: "Error",
+                  description: "Admin ID is required to fetch tasks",
+                  variant: "destructive"
                 })
-                .catch(() => setLoading(false))
+              }
             }}>
               <RefreshCw className="h-4 w-4" />
             </Button>
@@ -353,7 +405,7 @@ export default function AssignedTasks() {
                   </TableRow>
                 ) : (
                   filteredTasks.map((task) => (
-                    <TableRow key={task.id}>
+                    <TableRow key={task.task_id}>
                       <TableCell className="font-medium">{task.title}</TableCell>
                       <TableCell>{task.employee_name}</TableCell>
                       <TableCell>
@@ -434,15 +486,11 @@ export default function AssignedTasks() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
-                Close
-              </Button>
-              <Button onClick={() => {
+              <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+              <Button variant="outline" onClick={() => {
                 setViewDialogOpen(false)
                 handleEditTask(selectedTask)
-              }}>
-                Edit Task
-              </Button>
+              }}>Edit Task</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -455,17 +503,17 @@ export default function AssignedTasks() {
           setEditDialogOpen(false)
         }
       }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>{editDialogOpen ? "Edit Task" : "Create New Task"}</DialogTitle>
+            <DialogTitle>{editDialogOpen ? "Edit Task" : "Assign New Task"}</DialogTitle>
             <DialogDescription>
               {editDialogOpen 
-                ? "Update task details and assignment information" 
-                : "Assign a new task to an employee in your department"}
+                ? "Update the task details below" 
+                : "Assign a new task to a team member"}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="title"
@@ -485,21 +533,27 @@ export default function AssignedTasks() {
                 name="employee_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assigned To</FormLabel>
-                    <FormControl>
-                      <Select {...field}>
+                    <FormLabel>Assign To</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select employee" />
+                          <SelectValue placeholder="Select an employee" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {employees.map((employee) => (
-                            <SelectItem key={employee.id} value={employee.id}>
-                              {employee.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
+                      </FormControl>
+                      <SelectContent>
+                        {employees.map((employee) => (
+                          <SelectItem 
+                            key={employee.employee_id} 
+                            value={employee.employee_id}
+                          >
+                            {employee.name} ({employee.position})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -512,77 +566,102 @@ export default function AssignedTasks() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} />
+                      <Textarea 
+                        placeholder="Enter task description" 
+                        className="resize-none h-20" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="due_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Due Date</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="date" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="priority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Priority</FormLabel>
-                    <FormControl>
-                      <Select {...field}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="due_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Due Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Priority</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
+                        </FormControl>
                         <SelectContent>
                           <SelectItem value="high">High</SelectItem>
                           <SelectItem value="medium">Medium</SelectItem>
                           <SelectItem value="low">Low</SelectItem>
                         </SelectContent>
                       </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <FormControl>
-                      <Select {...field}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
+              {editDialogOpen && (
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
                         <SelectContent>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
                           <SelectItem value="canceled">Canceled</SelectItem>
                         </SelectContent>
                       </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               
               <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setAddDialogOpen(false)
+                    setEditDialogOpen(false)
+                  }}
+                >
+                  Cancel
+                </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Submitting...' : editDialogOpen ? 'Update Task' : 'Create Task'}
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {editDialogOpen ? "Update Task" : "Create Task"}
                 </Button>
               </DialogFooter>
             </form>
