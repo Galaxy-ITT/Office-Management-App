@@ -147,14 +147,17 @@ export async function createAllTables() {
         department_id INT,
         description TEXT,
         assigned_by INT NOT NULL,
+        admin_id INT,
         date_assigned TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
         FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
         FOREIGN KEY (department_id) REFERENCES departments_table(department_id) ON DELETE SET NULL,
         FOREIGN KEY (assigned_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        FOREIGN KEY (admin_id) REFERENCES lists_of_admins(admin_id) ON DELETE SET NULL,
         INDEX idx_employee (employee_id),
         INDEX idx_department (department_id),
-        INDEX idx_assigned_by (assigned_by)
+        INDEX idx_assigned_by (assigned_by),
+        INDEX idx_admin (admin_id)
       )
     `)
     console.log("roles_table created successfully")
