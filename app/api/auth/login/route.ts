@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       let redirectPath
       switch (admin.role) {
         case 'HOD':
-          redirectPath = '/pages/hod'
+          redirectPath = '/pages/hod-admin'
           break
         case 'Super Admin':
           redirectPath = '/pages/super-admin'
@@ -107,6 +107,9 @@ export async function POST(request: NextRequest) {
           break
         case 'Boss':
           redirectPath = '/pages/boss'
+          break
+        case 'Employee':
+          redirectPath = '/pages/employee-profile'
           break
         default:
           redirectPath = '/dashboard'

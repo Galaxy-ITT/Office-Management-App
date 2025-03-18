@@ -636,6 +636,17 @@ export async function addRole(roleData: RoleInput): Promise<{
   const connection = await pool.getConnection();
   
   try {
+    // First, verify that assigned_by exists in lists_of_admins
+    const checkAdminQuery = `SELECT admin_id FROM lists_of_admins WHERE admin_id = ?`;
+    const [adminResults] = await connection.query(checkAdminQuery, [roleData.assigned_by]) as [RowDataPacket[], FieldPacket[]];
+    
+    if (adminResults.length === 0) {
+      return {
+        success: false,
+        error: "Invalid admin ID. Please log in again or contact system administrator."
+      };
+    }
+    
     await connection.beginTransaction();
     
     const roleId = uuidv4();
@@ -662,35 +673,12 @@ export async function addRole(roleData: RoleInput): Promise<{
     
     const employee = employeeResults[0];
     
-    // Insert the role into roles_table
-    const insertQuery = `
-      INSERT INTO roles_table (
-        role_id,
-        role_name, 
-        employee_id, 
-        department_id, 
-        description,
-        assigned_by,
-        status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
-    
-    await connection.execute(insertQuery, [
-      roleId,
-      roleData.role_name,
-      roleData.employee_id,
-      roleData.department_id,
-      roleData.description || null,
-      roleData.assigned_by,
-      roleData.status
-    ]);
-    
     // Generate shorter username (max ~4 chars)
     const nameParts = employee.name.split(' ');
     const firstName = nameParts[0] || '';
     const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
     
-    // Take first initial + first 3 chars of last name (or fewer if last name is shorter)
+    // Take first initial + first 3 chars of last name
     const firstInitial = firstName.charAt(0);
     const lastNameShort = lastName.substring(0, 3);
     const baseUsername = (firstInitial + lastNameShort).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -701,7 +689,7 @@ export async function addRole(roleData: RoleInput): Promise<{
     let username = baseUsername;
     
     while (!isUsernameUnique && attemptCount < 10) {
-      // Add single digit if needed after first attempt to keep it short
+      // Add single digit if needed after first attempt
       if (attemptCount > 0) {
         username = baseUsername + attemptCount;
       }
@@ -720,16 +708,15 @@ export async function addRole(roleData: RoleInput): Promise<{
     }
     
     if (!isUsernameUnique) {
-      // If we still have collisions after 10 attempts, add 2 random digits
       username = baseUsername + Math.floor(Math.random() * 100);
     }
     
-    // Generate random password (keeping this the same for security)
+    // Generate random password
     const password = Math.random().toString(36).slice(2, 10) + 
                Math.random().toString(36).slice(2, 10).toUpperCase() + 
                Math.floor(Math.random() * 10);
     
-    // Always create a new admin account with role="HOD"
+    // Create HOD admin account
     const adminInsertQuery = `
       INSERT INTO lists_of_admins (
         name,
@@ -749,6 +736,31 @@ export async function addRole(roleData: RoleInput): Promise<{
     
     const adminId = adminResult.insertId;
     
+    // Insert the role with the admin_id reference
+    const insertQuery = `
+      INSERT INTO roles_table (
+        role_id,
+        role_name, 
+        employee_id, 
+        department_id, 
+        description,
+        assigned_by,
+        admin_id,
+        status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    await connection.execute(insertQuery, [
+      roleId,
+      roleData.role_name,
+      roleData.employee_id,
+      roleData.department_id,
+      roleData.description || null,
+      roleData.assigned_by,
+      adminId,
+      roleData.status
+    ]);
+    
     await connection.commit();
     
     // Send email notification with login credentials
@@ -760,7 +772,7 @@ export async function addRole(roleData: RoleInput): Promise<{
         employee.department_name,
         roleData.description || null,
         username,
-        password // Always show actual password in email
+        password // Show actual password in email
       );
     }
     
@@ -774,7 +786,7 @@ export async function addRole(roleData: RoleInput): Promise<{
     await connection.rollback();
     console.error("Error adding role:", error);
     
-    // Handle specific errors
+    // Handle specific errors with user-friendly messages
     if (error.code === 'ER_DUP_ENTRY' && error.message.includes('username')) {
       return {
         success: false,
@@ -782,9 +794,30 @@ export async function addRole(roleData: RoleInput): Promise<{
       };
     }
     
+    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+      if (error.message.includes('assigned_by')) {
+        return {
+          success: false,
+          error: "You don't have permission to assign roles. Please log in again."
+        };
+      }
+      if (error.message.includes('employee_id')) {
+        return {
+          success: false,
+          error: "Selected employee does not exist."
+        };
+      }
+      if (error.message.includes('department_id')) {
+        return {
+          success: false,
+          error: "Selected department does not exist."
+        };
+      }
+    }
+    
     return {
       success: false,
-      error: error?.message || "Failed to assign role"
+      error: "Database error: " + (error?.sqlMessage || error?.message || "Failed to assign role")
     };
   } finally {
     connection.release();

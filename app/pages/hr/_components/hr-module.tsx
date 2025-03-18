@@ -108,7 +108,7 @@ export function HrModule() {
   const [departments, setDepartments] = useState<Department[]>([])
   
   // Get user name and format current date
-  const userName = userData?.data?.name || "User"
+  const userName = userData?.name || "User"
   const currentDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -166,7 +166,7 @@ export function HrModule() {
       const values = await form.validateFields();
       
       // Add current admin ID for the created_by field
-      const adminId = userData?.data?.admin_id || 1;
+      const adminId = userData?.admin_id || 1;
       
       const result = await addEmployee({
         ...values,
@@ -213,9 +213,10 @@ export function HrModule() {
   // Authentication check
   useEffect(() => {
     // Check if user is authenticated
-    if (!userData || !userData.data) {
+    if (!userData || !userData) {
       router.push("/pages/admins-login")
     }
+    console.log(userData)
   }, [userData, router])
 
   const renderDashboard = () => (

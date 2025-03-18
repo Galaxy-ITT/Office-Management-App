@@ -71,7 +71,7 @@ export default function RolesManagement() {
     employee_id: '',
     department_id: null,
     description: '',
-    assigned_by: userData?.data?.admin_id || 0,
+    assigned_by: userData?.admin_id || 0,
     status: 'active'
   })
 
@@ -152,7 +152,7 @@ export default function RolesManagement() {
     try {
       const result = await addRole({
         ...formData,
-        assigned_by: userData?.data?.admin_id || 0
+        assigned_by: userData?.admin_id || 0
       })
 
       if (result.success) {
@@ -250,7 +250,7 @@ export default function RolesManagement() {
       employee_id: '',
       department_id: null,
       description: '',
-      assigned_by: userData?.data?.admin_id || 0,
+      assigned_by: userData?.admin_id || 0,
       status: 'active'
     })
     setSelectedRole(null)
@@ -276,7 +276,7 @@ export default function RolesManagement() {
       employee_id: role.employee_id,
       department_id: role.department_id,
       description: role.description || '',
-      assigned_by: userData?.data?.admin_id || 0,
+      assigned_by: userData?.admin_id || 0,
       status: role.status
     })
     setEditDialogOpen(true)

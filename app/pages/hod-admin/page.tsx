@@ -1,11 +1,16 @@
-import type { Metadata } from "next"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Admin Dashboard",
-  description: "Head of Admin Dashboard for staff management and performance review",
-}
+import type { Metadata } from "next"
+import { UserContext } from "@/userContext/userContext"
+import { useContext } from "react"
+
 
 export default function DashboardPage() {
+
+  const { userData } = useContext(UserContext)
+
+  console.log(userData)
+
   return <>
   <div>
     Working on it!
