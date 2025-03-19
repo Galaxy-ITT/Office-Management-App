@@ -54,43 +54,49 @@ export interface Task {
 }
 
 // Fetch dashboard statistics for HOD
-export async function fetchDashboardStats(departmentId: number) {
+export async function fetchDashboardStats(departmentId: number, employeeId: string) {
   try {
     // Get total employees in department
     const [employees] = await pool.query<RowDataPacket[]>(
-      `SELECT COUNT(*) as total FROM employees_table WHERE department_id = ?`,
+      `SELECT COUNT(*) as totalEmployees 
+       FROM employees_table 
+       WHERE department_id = ?`,
       [departmentId]
     );
     
-    // Get pending proposals
+    // Get pending proposals related to employees in this department
     const [proposals] = await pool.query<RowDataPacket[]>(
-      `SELECT COUNT(*) as total FROM proposals_table 
-       WHERE department_id = ? AND status = 'pending'`,
+      `SELECT COUNT(*) as pendingProposals 
+       FROM proposals_table p
+       JOIN employees_table e ON p.employee_id = e.employee_id
+       WHERE e.department_id = ? AND p.status = 'pending'`,
       [departmentId]
     );
     
-    // Get upcoming reviews
+    // Get upcoming reviews for the employee
     const [reviews] = await pool.query<RowDataPacket[]>(
-      `SELECT COUNT(*) as total FROM performance_reviews_table 
-       WHERE department_id = ? AND status = 'pending'`,
-      [departmentId]
+      `SELECT COUNT(*) as upcomingReviews 
+       FROM performance_reviews_table 
+       WHERE employee_id = ? AND status = 'pending'`,
+      [employeeId]
     );
     
-    // Get pending tasks - renamed to match DashboardStats interface
+    // Get pending tasks for the employee
     const [tasks] = await pool.query<RowDataPacket[]>(
-      `SELECT COUNT(*) as total FROM tasks_table 
-       WHERE department_id = ? AND status != 'completed'`,
-      [departmentId]
+      `SELECT COUNT(*) as pendingTasks 
+       FROM tasks_table 
+       WHERE employee_id = ? AND status = 'pending'`,
+      [employeeId]
     );
     
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: {
-        totalEmployees: employees[0].total,
-        pendingProposals: proposals[0].total,
-        upcomingReviews: reviews[0].total,
-        pendingTasks: tasks[0].total  // Changed from activeTasks to pendingTasks
-      } 
+        totalEmployees: employees[0].totalEmployees,
+        pendingProposals: proposals[0].pendingProposals,
+        upcomingReviews: reviews[0].upcomingReviews,
+        pendingTasks: tasks[0].pendingTasks
+      }
     };
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
@@ -229,27 +235,30 @@ export async function updateReview(reviewId: string, reviewData: any) {
   }
 }
 
-// Fetch assigned tasks
-export async function fetchAssignedTasks(departmentId: number) {
+export async function fetchAssignedTasks(adminId: number) {
   try {
-    // Get department managed by HOD
-   
     const [tasks] = await pool.query<RowDataPacket[]>(
-      `SELECT t.task_id, t.title, t.description, 
-              t.employee_id, e.name as employee_name,
-              t.assigned_by, a.name as assigner_name,
-              t.due_date, t.priority, t.status, t.created_at
+      `SELECT t.task_id, t.title, t.description, t.employee_id, 
+              e.name as employee_name, t.assigned_by, 
+              a.name as assigner_name, t.due_date, t.priority, 
+              t.status, t.created_at, t.updated_at
        FROM tasks_table t
        JOIN employees_table e ON t.employee_id = e.employee_id
        JOIN lists_of_admins a ON t.assigned_by = a.admin_id
-       WHERE e.department_id = ?
-       ORDER BY t.created_at DESC`,
-      [departmentId]
+       WHERE t.assigned_by = ?
+       ORDER BY t.due_date ASC`,
+      [adminId]
     );
     
-    return { success: true, data: tasks };
+    // Transform task_id to id for easier frontend handling
+    const tasksWithId = tasks.map((task: any) => ({
+      ...task,
+      id: task.task_id
+    }));
+    
+    return { success: true, data: tasksWithId };
   } catch (error) {
-    console.error('Error fetching tasks:', error);
+    console.error('Error fetching assigned tasks:', error);
     return { success: false, error: 'Failed to fetch assigned tasks' };
   }
 }

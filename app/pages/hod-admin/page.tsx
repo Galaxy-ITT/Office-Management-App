@@ -84,7 +84,7 @@ export default function DashboardPage() {
 
   // Get user name and format current date
   const userName = userData?.name || "Department Head"
-  const departmentName = userData?.department_id || "Department"
+  const departmentName = userData?.department_name || "Department"
   const currentDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -97,26 +97,26 @@ export default function DashboardPage() {
     const loadDashboardStats = async () => {
       try {
         setLoading(true)
-        if (!userData?.department_id) {
+        if (!userData?.department_id || !userData?.employee_id) {
           setLoading(false)
           return
         }
         
-        const result = await fetchDashboardStats(userData.department_id);
+        const result = await fetchDashboardStats(userData.department_id, userData.employee_id);
         if (result.success && result.data) {
-          setDashboardStats(result.data as DashboardStats);
+          setDashboardStats(result.data);
         }
       } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
+        console.error('Error loading dashboard stats:', error);
       } finally {
         setLoading(false)
       }
-    };
+    }
 
-    if (userData?.department_id && activePage === 'Dashboard') {
+    if (userData?.department_id && userData?.employee_id) {
       loadDashboardStats();
     }
-  }, [activePage, userData]);
+  }, [userData]);
 
   // Authentication check
   useEffect(() => {

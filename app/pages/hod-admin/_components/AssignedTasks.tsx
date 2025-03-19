@@ -129,17 +129,24 @@ export default function AssignedTasks() {
 
   // Fetch tasks and employees
   useEffect(() => {
+    
     const loadTasks = async () => {
       setLoading(true)
       try {
-        // Add null check for admin_id
-        if (!userData?.department_id) {
-          throw new Error("Admin ID is required")
+        if (!userData?.employee_id || !userData?.admin_id) {
+          toast({
+            title: "Error",
+            description: "Employee ID or Admin ID not found",
+            variant: "destructive"
+          })
+          setLoading(false)
+          return
         }
         
-        const result = await fetchAssignedTasks(userData?.department_id)
+        const result = await fetchAssignedTasks(userData.admin_id)
         if (result.success && result.data) {
           setTasks(result.data as Task[])
+          console.log(tasks)
         } else {
           toast({
             title: "Error",
@@ -166,16 +173,21 @@ export default function AssignedTasks() {
           throw new Error("Admin ID is required")
         }
         
-        const result = await fetchDepartmentEmployees(userData.admin_id)
+        if (!userData.department_id) {
+          throw new Error("Department ID is required")
+        }
+        
+        const result = await fetchDepartmentEmployees(userData.department_id)
         if (result.success && result.data) {
           setEmployees(result.data as Employee[])
+          console.log(employees)
         }
       } catch (error) {
         console.error("Error loading employees:", error)
       }
     }
 
-    if (userData?.admin_id) {
+    if (userData?.employee_id) {
       loadTasks()
       loadEmployees()
     }
@@ -262,7 +274,7 @@ export default function AssignedTasks() {
         })
         
         // Refresh data
-        if (userData?.admin_id) {
+        if (userData?.admin_id && userData.employee_id) {
           const refreshResult = await fetchAssignedTasks(userData.admin_id)
           if (refreshResult.success && refreshResult.data) {
             setTasks(refreshResult.data as Task[])
@@ -321,6 +333,45 @@ export default function AssignedTasks() {
     }
   }
 
+  // Handle refresh
+  const handleRefresh = async () => {
+    if (!userData || !userData.employee_id || !userData.admin_id) {
+      toast({
+        title: "Error",
+        description: "Required user data not found",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const refreshResult = await fetchAssignedTasks(userData.admin_id)
+      if (refreshResult.success && refreshResult.data) {
+        setTasks(refreshResult.data as Task[])
+        toast({
+          title: "Success",
+          description: "Tasks refreshed successfully"
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: refreshResult.error || "Failed to refresh tasks",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error refreshing tasks:", error)
+      toast({
+        title: "Error",
+        description: "An error occurred while refreshing data",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -341,26 +392,7 @@ export default function AssignedTasks() {
                 onChange={(e) => setSearchText(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="icon" onClick={() => {
-              setLoading(true)
-              if (userData?.admin_id) {
-                fetchAssignedTasks(userData.admin_id)
-                  .then(result => {
-                    if (result.success && result.data) {
-                      setTasks(result.data as Task[])
-                    }
-                    setLoading(false)
-                  })
-                  .catch(() => setLoading(false))
-              } else {
-                setLoading(false)
-                toast({
-                  title: "Error",
-                  description: "Admin ID is required to fetch tasks",
-                  variant: "destructive"
-                })
-              }
-            }}>
+            <Button variant="outline" size="icon" onClick={handleRefresh}>
               <RefreshCw className="h-4 w-4" />
             </Button>
             <Button onClick={handleAddTask}>
