@@ -133,10 +133,10 @@ export default function PerformanceReviews() {
     const loadData = async () => {
       setLoading(true)
       try {
-        if (!userData?.department_id || !userData?.admin_id) {
+        if (!userData?.admin_id) {
           toast({
             title: "Error",
-            description: "Department ID or Admin ID not found",
+            description: "Admin ID not found",
             variant: "destructive"
           })
           setLoading(false)
@@ -144,7 +144,7 @@ export default function PerformanceReviews() {
         }
         
         // Fetch performance reviews
-        const reviewsResult = await fetchPerformanceReviews(userData.department_id)
+        const reviewsResult = await fetchPerformanceReviews(userData.admin_id)
         if (reviewsResult.success && reviewsResult.data) {
           setPerformanceReviews(reviewsResult.data as PerformanceReview[])
         } else {
@@ -156,9 +156,11 @@ export default function PerformanceReviews() {
         }
 
         // Fetch employees for the form
-        const employeesResult = await fetchDepartmentEmployees(userData.department_id)
-        if (employeesResult.success && employeesResult.data) {
-          setEmployees(employeesResult.data as Employee[])
+        if (userData.department_id) {
+          const employeesResult = await fetchDepartmentEmployees(userData.department_id)
+          if (employeesResult.success && employeesResult.data) {
+            setEmployees(employeesResult.data as Employee[])
+          }
         }
       } catch (error) {
         console.error("Error loading data:", error)
@@ -172,7 +174,7 @@ export default function PerformanceReviews() {
       }
     }
 
-    if (userData?.department_id) {
+    if (userData?.admin_id) {
       loadData()
     }
   }, [userData, toast])
@@ -186,10 +188,10 @@ export default function PerformanceReviews() {
 
   // Refresh data function
   const refreshData = async () => {
-    if (!userData?.department_id) {
+    if (!userData?.admin_id) {
       toast({
         title: "Error",
-        description: "Department ID not found",
+        description: "Admin ID not found",
         variant: "destructive"
       })
       return
@@ -197,7 +199,7 @@ export default function PerformanceReviews() {
 
     setLoading(true)
     try {
-      const result = await fetchPerformanceReviews(userData.department_id)
+      const result = await fetchPerformanceReviews(userData.admin_id)
       if (result.success && result.data) {
         setPerformanceReviews(result.data as PerformanceReview[])
         toast({
@@ -256,10 +258,10 @@ export default function PerformanceReviews() {
 
   // Form submission
   const onSubmit = async (data: ReviewFormValues) => {
-    if (!userData?.department_id) {
+    if (!userData?.admin_id) {
       toast({
         title: "Error",
-        description: "Department ID is required",
+        description: "Admin ID is required",
         variant: "destructive"
       })
       return

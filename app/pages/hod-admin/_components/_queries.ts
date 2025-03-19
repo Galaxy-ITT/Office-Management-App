@@ -168,23 +168,69 @@ export async function reviewProposal(proposalId: string, reviewData: any) {
   }
 }
 
-// Fetch performance reviews
-export async function fetchPerformanceReviews(departmentId: number) {
+// Fetch performance reviews for a specific admin
+export async function fetchPerformanceReviews(adminId: number) {
   try {
-    // Get performance reviews for employees in department
-    const [reviews] = await pool.query<RowDataPacket[]>(
-      `SELECT pr.review_id, pr.employee_id, e.name as employee_name,
-              pr.reviewer_id, a.name as reviewer_name, pr.subject,
-              pr.content, pr.rating, pr.review_date, pr.status
-       FROM performance_reviews_table pr
-       JOIN employees_table e ON pr.employee_id = e.employee_id
-       JOIN lists_of_admins a ON pr.reviewer_id = a.admin_id
-       WHERE e.department_id = ?
-       ORDER BY pr.review_date DESC`,
-      [departmentId]
-    );
+    const query = `
+      SELECT 
+        pr.review_id,
+        pr.employee_id,
+        e.name as employee_name,
+        pr.reviewer_id,
+        a.name as reviewer_name,
+        pr.review_date,
+        pr.rating,
+        pr.subject,
+        pr.content,
+        pr.status,
+        pr.created_at,
+        pr.updated_at
+      FROM 
+        performance_reviews_table pr
+      JOIN 
+        employees_table e ON pr.employee_id = e.employee_id
+      JOIN 
+        lists_of_admins a ON pr.reviewer_id = a.admin_id
+      WHERE 
+        pr.reviewer_id = ?
+      ORDER BY 
+        pr.review_date DESC
+    `;
     
-    return { success: true, data: reviews };
+    const [reviews] = await pool.query(query, [adminId]) as [RowDataPacket[], FieldPacket[]];
+    
+    // Process the content field to extract feedback and goals
+    const processedReviews = reviews.map(review => {
+      let feedback = '';
+      let goals = '';
+      
+      if (review.content) {
+        if (review.content.includes('Feedback:') && review.content.includes('Goals:')) {
+          const parts = review.content.split('Goals:');
+          feedback = parts[0].replace('Feedback:', '').trim();
+          goals = parts[1].trim();
+        } else {
+          feedback = review.content;
+        }
+      }
+      
+      return {
+        review_id: review.review_id,
+        employee_id: review.employee_id,
+        employee_name: review.employee_name,
+        reviewer_id: review.reviewer_id,
+        reviewer_name: review.reviewer_name,
+        review_date: review.review_date,
+        rating: review.rating,
+        feedback: feedback,
+        goals: goals,
+        status: review.status,
+        created_at: review.created_at,
+        updated_at: review.updated_at
+      };
+    });
+    
+    return { success: true, data: processedReviews };
   } catch (error) {
     console.error('Error fetching performance reviews:', error);
     return { success: false, error: 'Failed to fetch performance reviews' };
@@ -195,7 +241,11 @@ export async function fetchPerformanceReviews(departmentId: number) {
 export async function addReview(reviewData: any) {
   try {
     const reviewId = uuidv4();
-    const { employee_id, reviewer_id, subject, content, rating, status } = reviewData;
+    const { employee_id, reviewer_id, rating, status, feedback, goals } = reviewData;
+
+    // Map frontend fields to database fields
+    const subject = "Performance Review";
+    const content = `Feedback: ${feedback}\n\nGoals: ${goals}`;
     
     await pool.query(
       `INSERT INTO performance_reviews_table 
@@ -215,7 +265,11 @@ export async function addReview(reviewData: any) {
 // Update performance review
 export async function updateReview(reviewId: string, reviewData: any) {
   try {
-    const { subject, content, rating, status } = reviewData;
+    const { feedback, goals, rating, status } = reviewData;
+    
+    // Map frontend fields to database fields
+    const subject = "Performance Review";
+    const content = `Feedback: ${feedback}\n\nGoals: ${goals}`;
     
     await pool.query(
       `UPDATE performance_reviews_table 
