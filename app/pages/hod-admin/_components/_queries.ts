@@ -54,20 +54,8 @@ export interface Task {
 }
 
 // Fetch dashboard statistics for HOD
-export async function fetchDashboardStats(hodId: number) {
+export async function fetchDashboardStats(departmentId: number) {
   try {
-    // Get department managed by HOD
-    const [hodDept] = await pool.query<RowDataPacket[]>(
-      `SELECT department_id FROM departments_table WHERE head_of_department_id = ?`,
-      [hodId]
-    );
-    
-    if (!hodDept || !hodDept.length) {
-      return { success: false, error: 'No department found for this HOD' };
-    }
-    
-    const departmentId = hodDept[0].department_id;
-    
     // Get total employees in department
     const [employees] = await pool.query<RowDataPacket[]>(
       `SELECT COUNT(*) as total FROM employees_table WHERE department_id = ?`,
@@ -88,7 +76,7 @@ export async function fetchDashboardStats(hodId: number) {
       [departmentId]
     );
     
-    // Get assigned tasks
+    // Get pending tasks - renamed to match DashboardStats interface
     const [tasks] = await pool.query<RowDataPacket[]>(
       `SELECT COUNT(*) as total FROM tasks_table 
        WHERE department_id = ? AND status != 'completed'`,
@@ -101,7 +89,7 @@ export async function fetchDashboardStats(hodId: number) {
         totalEmployees: employees[0].total,
         pendingProposals: proposals[0].total,
         upcomingReviews: reviews[0].total,
-        activeTasks: tasks[0].total
+        pendingTasks: tasks[0].total  // Changed from activeTasks to pendingTasks
       } 
     };
   } catch (error) {
@@ -111,21 +99,9 @@ export async function fetchDashboardStats(hodId: number) {
 }
 
 // Fetch employees in department
-export async function fetchDepartmentEmployees(hodId: number) {
+export async function fetchDepartmentEmployees(departmentId: number) {
   try {
-    // Get department managed by HOD
-    const [hodDept] = await pool.query<RowDataPacket[]>(
-      `SELECT department_id FROM departments_table WHERE head_of_department_id = ?`,
-      [hodId]
-    );
-    
-    if (!hodDept || !hodDept.length) {
-      return { success: false, error: 'No department found for this HOD' };
-    }
-    
-    const departmentId = hodDept[0].department_id;
-    
-    // Get employees in department
+    // Get employees in department directly using department_id
     const [employees] = await pool.query(
       `SELECT e.employee_id, e.name, e.email, e.phone, e.position, 
               e.department_id, d.name as department_name, e.status
@@ -143,20 +119,8 @@ export async function fetchDepartmentEmployees(hodId: number) {
 }
 
 // Fetch employee proposals
-export async function fetchProposals(hodId: number) {
+export async function fetchProposals(departmentId: number) {
   try {
-    // Get department managed by HOD
-    const [hodDept] = await pool.query<RowDataPacket[]>(
-      `SELECT department_id FROM departments_table WHERE head_of_department_id = ?`,
-      [hodId]
-    );
-    
-    if (!hodDept || !hodDept.length) {
-      return { success: false, error: 'No department found for this HOD' };
-    }
-    
-    const departmentId = hodDept[0].department_id;
-    
     // Get proposals from employees in department
     const [proposals] = await pool.query<RowDataPacket[]>(
       `SELECT p.proposal_id, p.employee_id, e.name as employee_name, 
@@ -199,20 +163,8 @@ export async function reviewProposal(proposalId: string, reviewData: any) {
 }
 
 // Fetch performance reviews
-export async function fetchPerformanceReviews(hodId: number) {
+export async function fetchPerformanceReviews(departmentId: number) {
   try {
-    // Get department managed by HOD
-    const [hodDept] = await pool.query<RowDataPacket[]>(
-      `SELECT department_id FROM departments_table WHERE head_of_department_id = ?`,
-      [hodId]
-    );
-    
-    if (!hodDept || !hodDept.length) {
-      return { success: false, error: 'No department found for this HOD' };
-    }
-    
-    const departmentId = hodDept[0].department_id;
-    
     // Get performance reviews for employees in department
     const [reviews] = await pool.query<RowDataPacket[]>(
       `SELECT pr.review_id, pr.employee_id, e.name as employee_name,
@@ -278,21 +230,10 @@ export async function updateReview(reviewId: string, reviewData: any) {
 }
 
 // Fetch assigned tasks
-export async function fetchAssignedTasks(hodId: number) {
+export async function fetchAssignedTasks(departmentId: number) {
   try {
     // Get department managed by HOD
-    const [hodDept] = await pool.query<RowDataPacket[]>(
-      `SELECT department_id FROM departments_table WHERE head_of_department_id = ?`,
-      [hodId]
-    );
-    
-    if (!hodDept || !hodDept.length) {
-      return { success: false, error: 'No department found for this HOD' };
-    }
-    
-    const departmentId = hodDept[0].department_id;
-    
-    // Get tasks for employees in department
+   
     const [tasks] = await pool.query<RowDataPacket[]>(
       `SELECT t.task_id, t.title, t.description, 
               t.employee_id, e.name as employee_name,

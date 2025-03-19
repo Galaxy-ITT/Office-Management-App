@@ -71,6 +71,7 @@ interface DashboardStats {
 export default function DashboardPage() {
   const [activePage, setActivePage] = useState('Dashboard')
   const { userData } = useContext(UserContext)
+  console.log('User Data:', userData);
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -96,14 +97,14 @@ export default function DashboardPage() {
     const loadDashboardStats = async () => {
       try {
         setLoading(true)
-        if (!userData?.admin_id) {
+        if (!userData?.department_id) {
           setLoading(false)
           return
         }
         
-        const result = await fetchDashboardStats(userData.admin_id);
+        const result = await fetchDashboardStats(userData.department_id);
         if (result.success && result.data) {
-          setDashboardStats(result.data as unknown as DashboardStats);
+          setDashboardStats(result.data as DashboardStats);
         }
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
@@ -112,7 +113,7 @@ export default function DashboardPage() {
       }
     };
 
-    if (userData?.admin_id && activePage === 'Dashboard') {
+    if (userData?.department_id && activePage === 'Dashboard') {
       loadDashboardStats();
     }
   }, [activePage, userData]);
@@ -330,7 +331,14 @@ export default function DashboardPage() {
         </Sidebar>
         <main className="flex-1 overflow-y-auto p-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold">{activePage}</h2>
+            <div>
+              <h2 className="text-3xl font-bold">{activePage}</h2>
+              {activePage === 'Dashboard' && (
+                <p className="text-muted-foreground">
+                  Welcome to {departmentName} Department dashboard
+                </p>
+              )}
+            </div>
             <Button variant="outline" size="icon">
               <Bell className="h-4 w-4" />
               <span className="sr-only">Notifications</span>

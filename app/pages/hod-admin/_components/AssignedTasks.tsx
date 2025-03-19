@@ -133,11 +133,11 @@ export default function AssignedTasks() {
       setLoading(true)
       try {
         // Add null check for admin_id
-        if (!userData?.admin_id) {
+        if (!userData?.department_id) {
           throw new Error("Admin ID is required")
         }
         
-        const result = await fetchAssignedTasks(userData.admin_id)
+        const result = await fetchAssignedTasks(userData?.department_id)
         if (result.success && result.data) {
           setTasks(result.data as Task[])
         } else {

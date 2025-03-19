@@ -56,17 +56,17 @@ export default function DepartmentEmployees() {
     const loadEmployees = async () => {
       setLoading(true)
       try {
-        if (!userData?.admin_id) {
+        if (!userData?.admin_id || !userData?.department_id) {
           toast({
             title: "Error",
-            description: "User ID not found",
+            description: "User ID or Department ID not found",
             variant: "destructive"
           })
           setLoading(false)
           return
         }
         
-        const result = await fetchDepartmentEmployees(userData.admin_id)
+        const result = await fetchDepartmentEmployees(userData.department_id)
         if (result.success && result.data) {
           setEmployees(result.data as Employee[])
         } else {
@@ -102,10 +102,10 @@ export default function DepartmentEmployees() {
 
   // Refresh employee list
   const handleRefresh = async () => {
-    if (!userData?.admin_id) {
+    if (!userData?.admin_id || !userData?.department_id) {
       toast({
         title: "Error",
-        description: "User ID not found",
+        description: "User ID or Department ID not found",
         variant: "destructive"
       })
       return
@@ -113,7 +113,7 @@ export default function DepartmentEmployees() {
     
     setLoading(true)
     try {
-      const result = await fetchDepartmentEmployees(userData.admin_id)
+      const result = await fetchDepartmentEmployees(userData.department_id)
       if (result.success && result.data) {
         setEmployees(result.data as Employee[])
         toast({

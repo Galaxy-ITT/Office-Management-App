@@ -92,17 +92,17 @@ export default function EmployeeProposals() {
     const loadProposals = async () => {
       setLoading(true)
       try {
-        if (!userData?.admin_id) {
+        if (!userData?.department_id) {
           toast({
             title: "Error",
-            description: "User ID not found",
+            description: "Department ID not found",
             variant: "destructive"
           })
           setLoading(false)
           return
         }
         
-        const result = await fetchProposals(userData.admin_id)
+        const result = await fetchProposals(userData.department_id)
         if (result.success && result.data) {
           setProposals(result.data as Proposal[])
         } else {
@@ -124,7 +124,7 @@ export default function EmployeeProposals() {
       }
     }
 
-    if (userData?.admin_id) {
+    if (userData?.department_id) {
       loadProposals()
     }
   }, [userData, toast])
@@ -152,13 +152,13 @@ export default function EmployeeProposals() {
 
   // Submit review
   const handleSubmitReview = async () => {
-    if (!selectedProposal || !userData?.admin_id || !userData?.department_name) return
+    if (!selectedProposal || !userData?.department_id || !userData?.department_name) return
 
     setSubmitting(true)
     try {
       const reviewData: ReviewData = {
         record_id: selectedProposal.proposal_id,
-        reviewed_by: userData.admin_id,
+        reviewed_by: userData.department_id,
         review_action: reviewStatus,
         review_note: reviewNote,
         department: userData.department_name,
