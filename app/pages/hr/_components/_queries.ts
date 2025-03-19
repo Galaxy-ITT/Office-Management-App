@@ -321,7 +321,7 @@ export async function fetchEmployees(): Promise<{
   }
 }
 
-// Add new employee
+// Add new employee with admin account creation
 export async function addEmployee(employeeData: EmployeeInput): Promise<{ 
   success: boolean; 
   message?: string;
@@ -335,6 +335,7 @@ export async function addEmployee(employeeData: EmployeeInput): Promise<{
     
     const employeeId = uuidv4();
     
+    // Insert employee record
     const insertQuery = `
       INSERT INTO employees_table (
         employee_id,
@@ -358,18 +359,116 @@ export async function addEmployee(employeeData: EmployeeInput): Promise<{
       employeeData.status,
       employeeData.created_by
     ]);
+
+    // Get department name if department_id is provided
+    let departmentName = null;
+    if (employeeData.department_id) {
+      const [departmentResult] = await connection.query(
+        `SELECT name FROM departments_table WHERE department_id = ?`,
+        [employeeData.department_id]
+      ) as [RowDataPacket[], FieldPacket[]];
+      
+      if (departmentResult.length > 0) {
+        departmentName = departmentResult[0].name;
+      }
+    }
+    
+    // Generate username based on employee name
+    const nameParts = employeeData.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+    
+    // Take first initial + first 3 chars of last name
+    const firstInitial = firstName.charAt(0);
+    const lastNameShort = lastName.substring(0, 3);
+    const baseUsername = (firstInitial + lastNameShort).toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    // Ensure username is unique
+    let isUsernameUnique = false;
+    let attemptCount = 0;
+    let username = baseUsername;
+    
+    while (!isUsernameUnique && attemptCount < 10) {
+      if (attemptCount > 0) {
+        username = baseUsername + attemptCount;
+      }
+      
+      const [existingUsername] = await connection.query(
+        `SELECT username FROM lists_of_admins WHERE username = ?`,
+        [username]
+      ) as [RowDataPacket[], FieldPacket[]];
+      
+      if (existingUsername.length === 0) {
+        isUsernameUnique = true;
+      } else {
+        attemptCount++;
+      }
+    }
+    
+    if (!isUsernameUnique) {
+      username = baseUsername + Math.floor(Math.random() * 100);
+    }
+    
+    // Generate secure random password
+    const password = Math.random().toString(36).slice(2, 8) + 
+               Math.random().toString(36).slice(2, 8).toUpperCase() + 
+               Math.floor(Math.random() * 10);
+    
+    // Create employee admin account
+    const adminInsertQuery = `
+      INSERT INTO lists_of_admins (
+        name,
+        email,
+        username,
+        role,
+        password
+      ) VALUES (?, ?, ?, 'Employee', ?)
+    `;
+    
+    await connection.execute(adminInsertQuery, [
+      employeeData.name,
+      employeeData.email,
+      username,
+      password
+    ]);
     
     await connection.commit();
     
+    // Send email notification with login credentials
+    const { sendEmployeeAccountNotification } = await import('@/server-side/adminEmail');
+    await sendEmployeeAccountNotification(
+      employeeData.email,
+      employeeData.name,
+      employeeData.position,
+      departmentName,
+      username,
+      password
+    );
+    
     return {
       success: true,
-      message: "Employee added successfully",
+      message: "Employee added successfully and account created",
       employee_id: employeeId
     };
     
   } catch (error: any) {
     await connection.rollback();
     console.error("Error adding employee:", error);
+    
+    if (error.code === 'ER_DUP_ENTRY') {
+      if (error.message.includes('email')) {
+        return {
+          success: false,
+          error: "An employee with this email already exists"
+        };
+      }
+      if (error.message.includes('username')) {
+        return {
+          success: false,
+          error: "Username already exists. Please try again."
+        };
+      }
+    }
     
     return {
       success: false,
@@ -390,6 +489,22 @@ export async function updateEmployee(employeeId: string, employeeData: Partial<E
   
   try {
     await connection.beginTransaction();
+    
+    // Get current employee data to check for email changes
+    const [currentEmployeeResult] = await connection.query(
+      `SELECT * FROM employees_table WHERE employee_id = ?`,
+      [employeeId]
+    ) as [RowDataPacket[], FieldPacket[]];
+    
+    if (currentEmployeeResult.length === 0) {
+      return {
+        success: false,
+        error: "Employee not found"
+      };
+    }
+    
+    const currentEmployee = currentEmployeeResult[0];
+    const emailChanged = employeeData.email !== undefined && employeeData.email !== currentEmployee.email;
     
     // Build the SET clause dynamically based on provided fields
     const updateFields: string[] = [];
@@ -442,6 +557,40 @@ export async function updateEmployee(employeeId: string, employeeData: Partial<E
     updateValues.push(employeeId);
     
     await connection.execute(updateQuery, updateValues);
+    
+    // Update admin account if email or name changed
+    if (emailChanged || (employeeData.name !== undefined && employeeData.name !== currentEmployee.name)) {
+      const adminUpdateFields: string[] = [];
+      const adminUpdateValues: any[] = [];
+      
+      if (employeeData.name !== undefined) {
+        adminUpdateFields.push("name = ?");
+        adminUpdateValues.push(employeeData.name);
+      }
+      
+      if (emailChanged) {
+        adminUpdateFields.push("email = ?");
+        adminUpdateValues.push(employeeData.email);
+      }
+      
+      if (adminUpdateFields.length > 0) {
+        const adminUpdateQuery = `
+          UPDATE lists_of_admins 
+          SET ${adminUpdateFields.join(", ")}
+          WHERE email = ? AND role = 'Employee'
+        `;
+        
+        adminUpdateValues.push(currentEmployee.email);
+        await connection.execute(adminUpdateQuery, adminUpdateValues);
+        
+        // Notify admin of update if email changed
+        if (emailChanged && employeeData.email) {
+          const { notifyAdminUpdate } = await import('@/server-side/adminEmail');
+          await notifyAdminUpdate(employeeData.email);
+        }
+      }
+    }
+    
     await connection.commit();
     
     return {
@@ -452,6 +601,14 @@ export async function updateEmployee(employeeId: string, employeeData: Partial<E
   } catch (error: any) {
     await connection.rollback();
     console.error("Error updating employee:", error);
+    
+    // Handle specific errors
+    if (error.code === 'ER_DUP_ENTRY' && error.message.includes('email')) {
+      return {
+        success: false,
+        error: "An employee with this email already exists"
+      };
+    }
     
     return {
       success: false,
@@ -473,6 +630,28 @@ export async function deleteEmployee(employeeId: string): Promise<{
   try {
     await connection.beginTransaction();
     
+    // Get employee details before deletion
+    const [employeeDetails] = await connection.query(
+      `SELECT name, email FROM employees_table WHERE employee_id = ?`,
+      [employeeId]
+    ) as [RowDataPacket[], FieldPacket[]];
+    
+    if (employeeDetails.length === 0) {
+      return {
+        success: false,
+        error: "Employee not found"
+      };
+    }
+    
+    const employee = employeeDetails[0];
+    
+    // Delete related admin account if exists
+    await connection.execute(`
+      DELETE FROM lists_of_admins
+      WHERE email = ? AND role = 'Employee'
+    `, [employee.email]);
+    
+    // Delete the employee
     const deleteQuery = `
       DELETE FROM employees_table
       WHERE employee_id = ?
@@ -481,9 +660,17 @@ export async function deleteEmployee(employeeId: string): Promise<{
     await connection.execute(deleteQuery, [employeeId]);
     await connection.commit();
     
+    // Send notification email
+    const { sendAdminRemovalNotification } = await import('@/server-side/adminEmail');
+    await sendAdminRemovalNotification(
+      employee.name,
+      employee.email,
+      'Employee'
+    );
+    
     return {
       success: true,
-      message: "Employee deleted successfully"
+      message: "Employee deleted successfully and account removed"
     };
     
   } catch (error: any) {

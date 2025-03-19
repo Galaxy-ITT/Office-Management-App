@@ -47,6 +47,10 @@ export async function POST(request: NextRequest) {
         department_name?: any;
         employee_id?: any;
         position?: any;
+        status?: any;
+        phone?: any;
+        hire_date?: any;
+        employee_name?: any;
       }
       
       let userData: UserData = {
@@ -79,6 +83,34 @@ export async function POST(request: NextRequest) {
             department_name: roles[0].department_name,
             employee_id: roles[0].employee_id,
             position: roles[0].position
+          }
+        }
+      }
+      // Step 3b: For Employee role, get employee details
+      else if (admin.role === 'Employee') {
+        // Get employee details linked to this admin account with a join
+        const [employees] = await connection.query(
+          `SELECT e.*, d.name as department_name
+           FROM employees_table e
+           JOIN lists_of_admins a ON e.email = a.email
+           LEFT JOIN departments_table d ON e.department_id = d.department_id
+           WHERE a.admin_id = ?`,
+          [admin.admin_id]
+        ) as [RowDataPacket[], any]
+        
+        if (employees.length > 0) {
+          // Add employee-specific data to userData
+          userData = {
+            ...userData,
+            employee_id: employees[0].employee_id,
+            position: employees[0].position,
+            department_id: employees[0].department_id,
+            department_name: employees[0].department_name,
+            status: employees[0].status,
+            phone: employees[0].phone,
+            hire_date: employees[0].hire_date,
+            // Ensure we have both admin and employee names
+            employee_name: employees[0].name
           }
         }
       }
