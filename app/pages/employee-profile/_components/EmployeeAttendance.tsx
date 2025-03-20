@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AttendanceMetric } from "./AttendanceMetric"
-import type { EmployeeAttendanceProps } from "../types/attendance"
-import { formatAttendance } from "../utils/formatAttendance"
+import { AttendanceMetric } from "../../../../components/AttendanceMetric"
+import type { EmployeeAttendanceProps } from "../../../../types/attendance"
+import { formatAttendance } from "../../../../utils/formatAttendance"
 
 export function EmployeeAttendance({ employeeName, attendanceData }: EmployeeAttendanceProps) {
   return (

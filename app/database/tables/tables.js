@@ -185,27 +185,6 @@ export async function createAllTables() {
     `)
     console.log("proposals_table created successfully")
 
-    // Create performance_reviews_table - for employee performance reviews
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS performance_reviews_table (
-        review_id VARCHAR(36) PRIMARY KEY,
-        employee_id VARCHAR(36) NOT NULL,
-        reviewer_id INT NOT NULL,
-        subject VARCHAR(255) NOT NULL,
-        content TEXT NOT NULL,
-        rating DECIMAL(3,1) NOT NULL,
-        review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        status VARCHAR(20) DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
-        FOREIGN KEY (reviewer_id) REFERENCES lists_of_admins(admin_id) ON DELETE CASCADE,
-        INDEX idx_employee_id (employee_id),
-        INDEX idx_reviewer_id (reviewer_id)
-      )
-    `)
-    console.log("performance_reviews_table created successfully")
-
     // Create tasks_table - for employee tasks and assignments
     await pool.query(`
       CREATE TABLE IF NOT EXISTS tasks_table (
@@ -230,7 +209,62 @@ export async function createAllTables() {
     `)
     console.log("tasks_table created successfully")
 
-    return { success: true, message: "All tables created successfully" }
+    // Create employee_skills_table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS employee_skills_table (
+        skill_id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id VARCHAR(36) NOT NULL,
+        skill_name VARCHAR(100) NOT NULL,
+        proficiency_level ENUM('Beginner', 'Intermediate', 'Advanced', 'Expert') NOT NULL,
+        years_experience DECIMAL(4,1),
+        date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_employee_skill (employee_id, skill_name),
+        INDEX idx_employee_id (employee_id)
+      )
+    `)
+    console.log("employee_skills_table created successfully")
+
+    // Create professional_development_table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS professional_development_table (
+        course_id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id VARCHAR(36) NOT NULL,
+        course_name VARCHAR(255) NOT NULL,
+        provider VARCHAR(255),
+        certification_obtained BOOLEAN DEFAULT FALSE,
+        start_date DATE,
+        completion_date DATE,
+        status ENUM('In Progress', 'Completed', 'Planned') NOT NULL DEFAULT 'In Progress',
+        notes TEXT,
+        date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        INDEX idx_employee_id (employee_id)
+      )
+    `)
+    console.log("professional_development_table created successfully")
+
+    // Create leave_applications_table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS leave_applications_table (
+        leave_id VARCHAR(36) PRIMARY KEY,
+        employee_id VARCHAR(36) NOT NULL,
+        leave_type VARCHAR(50) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        reason TEXT,
+        status VARCHAR(50) DEFAULT 'pending',
+        approved_by INT,
+        application_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        FOREIGN KEY (approved_by) REFERENCES lists_of_admins(admin_id) ON DELETE SET NULL,
+        INDEX idx_employee_id (employee_id)
+      )
+    `)
+    console.log("leave_applications_table created successfully")
+
+    return { success: true, message: "Tables created successfully" }
   } catch (error) {
     console.error("Error creating tables:", error)
     return { success: false, error: error.message }
