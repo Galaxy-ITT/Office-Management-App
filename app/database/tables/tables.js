@@ -244,6 +244,22 @@ export async function createAllTables() {
     `)
     console.log("professional_development_table created successfully")
 
+    // Create employee_documents_table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS employee_documents_table (
+        document_id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id VARCHAR(36) NOT NULL,
+        document_name VARCHAR(255) NOT NULL,
+        document_type VARCHAR(100) NOT NULL,
+        file_url VARCHAR(512) NOT NULL,
+        description TEXT,
+        upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        INDEX idx_employee_id (employee_id)
+      )
+    `)
+    console.log("employee_documents_table created successfully")
+
     // Create leave_applications_table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS leave_applications_table (

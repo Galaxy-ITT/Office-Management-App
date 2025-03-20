@@ -19,17 +19,19 @@ interface EmployeePerformanceProps {
 
 export default function EmployeePerformance({ performanceData }: EmployeePerformanceProps) {
   // Calculate average rating
-  const averageRating = performanceData.length > 0 
-    ? (performanceData.reduce((sum, review) => sum + review.rating, 0) / performanceData.length).toFixed(1)
-    : "N/A";
-
-  // Sort reviews by date with newest first
-  const sortedReviews = [...performanceData].sort(
-    (a, b) => new Date(b.review_date).getTime() - new Date(a.review_date).getTime()
-  );
-
-  // Get most recent review
-  const latestReview = sortedReviews.length > 0 ? sortedReviews[0] : null;
+  const avgRating = performanceData.length > 0
+    ? performanceData.reduce((sum, review) => sum + (review.rating ?? 0), 0) / performanceData.length
+    : 0;
+  
+  // Get latest review safely
+  const latestReview = performanceData.length > 0
+    ? [...performanceData].sort((a, b) => 
+        new Date(b.review_date).getTime() - new Date(a.review_date).getTime()
+      )[0]
+    : null;
+    
+  // Safe getter for rating with a default value
+  const getRating = (review: any) => review?.rating ?? 0;
 
   return (
     <Card>
@@ -40,7 +42,7 @@ export default function EmployeePerformance({ performanceData }: EmployeePerform
         <div>
           <h3 className="font-semibold mb-2">Overall Performance Rating</h3>
           <div className="flex items-center">
-            <span className="text-3xl font-bold mr-2">{averageRating}</span>
+            <span className="text-3xl font-bold mr-2">{avgRating.toFixed(1)}</span>
             <span className="text-muted-foreground">/ 5.0</span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -62,8 +64,11 @@ export default function EmployeePerformance({ performanceData }: EmployeePerform
                       Date: {new Date(latestReview?.review_date || "").toLocaleDateString()}
                     </p>
                   </div>
-                  <Badge variant={latestReview?.rating >= 4 ? "success" : latestReview?.rating >= 3 ? "default" : "destructive"}>
-                    Rating: {latestReview?.rating}/5
+                  <Badge variant={
+                    getRating(latestReview) >= 4 ? "success" : 
+                    getRating(latestReview) >= 3 ? "default" : "destructive"
+                  }>
+                    Rating: {latestReview?.rating ?? "N/A"}/5
                   </Badge>
                 </div>
                 
@@ -86,11 +91,14 @@ export default function EmployeePerformance({ performanceData }: EmployeePerform
                           {new Date(review.review_date).toLocaleDateString()}
                         </p>
                       </div>
-                      <Badge variant={review.rating >= 4 ? "success" : review.rating >= 3 ? "default" : "destructive"}>
-                        Rating: {review.rating}/5
+                      <Badge variant={
+                        getRating(review) >= 4 ? "success" : 
+                        getRating(review) >= 3 ? "default" : "destructive"
+                      }>
+                        Rating: {review.rating ?? "N/A"}/5
                       </Badge>
                     </div>
-                    <Progress value={review.rating * 20} className="h-2 mt-1" />
+                    <Progress value={getRating(review) * 20} className="h-2 mt-1" />
                   </div>
                 ))
               ) : (

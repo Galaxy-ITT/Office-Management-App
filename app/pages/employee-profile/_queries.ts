@@ -9,10 +9,10 @@ export async function fetchEmployeePerformance(employeeId: string) {
         pr.review_id,
         pr.rating,
         pr.review_date,
-        pr.review_period,
+        pr.subject AS review_period,
         pr.status,
         pr.reviewer_id,
-        pr.reviewer_comments,
+        pr.content AS reviewer_comments,
         ra.admin_id,
         ra.name as reviewer_name
       FROM performance_reviews_table pr
@@ -28,18 +28,68 @@ export async function fetchEmployeePerformance(employeeId: string) {
   }
 }
 
+export async function fetchEmployeeLeaves(employeeId: string) {
+  try {
+    const [leaves] = await pool.query(
+      `SELECT 
+        id AS leave_id,
+        leave_type,
+        start_date,
+        end_date,
+        reason,
+        status,
+        application_date
+      FROM leave_applications_table
+      WHERE employee_id = ?
+      ORDER BY application_date DESC`,
+      [employeeId]
+    );
+    return { success: true, data: leaves };
+  } catch (error) {
+    console.error('Error fetching leaves:', error);
+    return { success: false, error: 'Failed to fetch leave data' };
+  }
+}
+
+export async function fetchEmployeeDetails(employeeId: string) {
+  try {
+    const [employees] = await pool.query(
+      `SELECT 
+        e.employee_id,
+        e.name,
+        e.email,
+        e.phone,
+        e.position,
+        e.department_id,
+        d.name as department_name,
+        e.hire_date,
+        e.status
+      FROM employees_table e
+      LEFT JOIN departments_table d ON e.department_id = d.department_id
+      WHERE e.employee_id = ?`,
+      [employeeId]
+    );
+    
+    const details = employees[0] || null;
+    return { success: true, data: details };
+  } catch (error) {
+    console.error('Error fetching employee details:', error);
+    return { success: false, error: 'Failed to fetch employee details' };
+  }
+}
+
 export async function fetchEmployeeSkills(employeeId: string) {
   try {
     const [skills] = await pool.query(
       `SELECT * FROM employee_skills_table 
        WHERE employee_id = ?
-       ORDER BY proficiency_level DESC, skill_name ASC`,
+       ORDER BY years_experience DESC`,
       [employeeId]
     );
     return { success: true, data: skills };
   } catch (error) {
-    console.error('Error fetching employee skills:', error);
-    return { success: false, error: 'Failed to fetch employee skills' };
+    console.error('Error fetching skills:', error);
+    return { success: false, error: 'Failed to fetch skills data' };
   }
 }
 
@@ -48,53 +98,62 @@ export async function fetchEmployeeCourses(employeeId: string) {
     const [courses] = await pool.query(
       `SELECT * FROM professional_development_table 
        WHERE employee_id = ?
-       ORDER BY status ASC, completion_date DESC, start_date DESC`,
+       ORDER BY start_date DESC`,
       [employeeId]
     );
     return { success: true, data: courses };
   } catch (error) {
-    console.error('Error fetching professional development courses:', error);
-    return { success: false, error: 'Failed to fetch professional development courses' };
+    console.error('Error fetching courses:', error);
+    return { success: false, error: 'Failed to fetch courses data' };
   }
 }
 
-export async function addEmployeeSkill(employeeId: string, skillData: {
-  skill_name: string;
-  proficiency_level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
-  years_experience?: number;
-}) {
+export async function fetchEmployeeDocuments(employeeId: string) {
+  try {
+    const [documents] = await pool.query(
+      `SELECT * FROM employee_documents_table 
+       WHERE employee_id = ?
+       ORDER BY upload_date DESC`,
+      [employeeId]
+    );
+    return { success: true, data: documents };
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    return { success: false, error: 'Failed to fetch documents data' };
+  }
+}
+
+export async function addEmployeeSkill(employeeId: string, skillData: any) {
   try {
     await pool.query(
-      `INSERT INTO employee_skills_table (employee_id, skill_name, proficiency_level, years_experience)
+      `INSERT INTO employee_skills_table 
+       (employee_id, skill_name, proficiency_level, years_experience)
        VALUES (?, ?, ?, ?)`,
-      [employeeId, skillData.skill_name, skillData.proficiency_level, skillData.years_experience || null]
+      [
+        employeeId,
+        skillData.skill_name,
+        skillData.proficiency_level,
+        skillData.years_experience
+      ]
     );
     return { success: true, message: 'Skill added successfully' };
   } catch (error) {
-    console.error('Error adding employee skill:', error);
+    console.error('Error adding skill:', error);
     return { success: false, error: 'Failed to add skill' };
   }
 }
 
-export async function addProfessionalDevelopment(employeeId: string, courseData: {
-  course_name: string;
-  provider?: string;
-  certification_obtained?: boolean;
-  start_date?: string;
-  completion_date?: string;
-  status: 'In Progress' | 'Completed' | 'Planned';
-  notes?: string;
-}) {
+export async function addProfessionalDevelopment(employeeId: string, courseData: any) {
   try {
     await pool.query(
       `INSERT INTO professional_development_table 
-        (employee_id, course_name, provider, certification_obtained, start_date, completion_date, status, notes)
+       (employee_id, course_name, provider, certification_obtained, start_date, completion_date, status, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        employeeId, 
+        employeeId,
         courseData.course_name,
         courseData.provider || null,
-        courseData.certification_obtained || false,
+        courseData.certification_obtained ? 1 : 0,
         courseData.start_date || null,
         courseData.completion_date || null,
         courseData.status,
@@ -108,31 +167,25 @@ export async function addProfessionalDevelopment(employeeId: string, courseData:
   }
 }
 
-export async function fetchEmployeeLeaves(employeeId: string) {
+export async function addEmployeeDocument(employeeId: string, documentData: any) {
   try {
-    const [leaves] = await pool.query(
-      `SELECT * FROM leave_applications_table WHERE employee_id = ? ORDER BY application_date DESC`,
-      [employeeId]
+    const currentDate = new Date().toISOString().split('T')[0];
+    await pool.query(
+      `INSERT INTO employee_documents_table 
+       (employee_id, document_name, document_type, file_url, upload_date, description)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        employeeId,
+        documentData.document_name,
+        documentData.document_type,
+        documentData.file_url,
+        currentDate,
+        documentData.description || null
+      ]
     );
-    return { success: true, data: leaves };
+    return { success: true, message: 'Document added successfully' };
   } catch (error) {
-    console.error('Error fetching leaves:', error);
-    return { success: false, error: 'Failed to fetch leave applications' };
+    console.error('Error adding document:', error);
+    return { success: false, error: 'Failed to add document' };
   }
 }
-
-export async function fetchEmployeeDetails(employeeId: string) {
-  try {
-    const [details]: [any[], any] = await pool.query(
-      `SELECT e.*, d.name as department_name 
-       FROM employees_table e
-       LEFT JOIN departments_table d ON e.department_id = d.department_id
-       WHERE e.employee_id = ?`,
-      [employeeId]
-    );
-    return { success: true, data: details[0] };
-  } catch (error) {
-    console.error('Error fetching employee details:', error);
-    return { success: false, error: 'Failed to fetch employee details' };
-  }
-} 
