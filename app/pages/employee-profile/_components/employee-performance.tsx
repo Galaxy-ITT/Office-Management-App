@@ -39,15 +39,28 @@ export default function EmployeePerformance({ performanceData }: EmployeePerform
         <CardTitle>Performance Overview</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div>
-          <h3 className="font-semibold mb-2">Overall Performance Rating</h3>
-          <div className="flex items-center">
-            <span className="text-3xl font-bold mr-2">{avgRating.toFixed(1)}</span>
-            <span className="text-muted-foreground">/ 5.0</span>
+        <div className="space-y-2">
+          <h3 className="font-semibold">Performance Summary</h3>
+          <div className="bg-muted/20 p-4 rounded-md">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Reviews</p>
+                <p className="text-xl font-semibold">{performanceData.length}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Latest Rating</p>
+                <p className="text-xl font-semibold">{latestReview?.rating || "N/A"}/5</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Last Review</p>
+                <p className="text-base">{latestReview ? new Date(latestReview.review_date).toLocaleDateString() : "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <p className="text-base">{latestReview?.status || "No status"}</p>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Based on {performanceData.length} performance review{performanceData.length !== 1 ? 's' : ''}
-          </p>
         </div>
 
         {performanceData.length > 0 ? (

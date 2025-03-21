@@ -32,7 +32,7 @@ export async function fetchEmployeeLeaves(employeeId: string) {
   try {
     const [leaves] = await pool.query(
       `SELECT 
-        id AS leave_id,
+        leave_id,
         leave_type,
         start_date,
         end_date,
