@@ -10,11 +10,11 @@ import EmployeeHeader from "@/components/employee-header"
 import { EmployeeAttendance } from "@/app/pages/employee-profile/_components/EmployeeAttendance"
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { EmployeeLeaves } from "@/app/pages/employee-profile/_components/Employee-leaves"
+import EmployeePerformance from "@/app/pages/employee-profile/_components/employee-performance"
 
 // Dynamic imports for better performance
 const EmployeeDetails = dynamic(() => import("@/app/pages/employee-profile/_components/employee-details"))
-const LeaveManagement = dynamic(() => import("@/app/pages/hr/_components/leave-management"))
-const EmployeePerformance = dynamic(() => import("@/app/pages/employee-profile/_components/employee-performance"))
 const ProfessionalDevelopment = dynamic(() => import("@/app/pages/employee-profile/_components/professional-development"))
 
 // Define the type for API responses
@@ -185,7 +185,7 @@ export default function EmployeeProfilePage() {
         <ProfessionalDevelopment />
       </div>
       <div className="space-y-8">
-        {leaves.length > 0 && <LeaveManagement leaveData={leaves} />}
+        {leaves.length > 0 && <EmployeeLeaves leaveData={leaves} compact={true} />}
       </div>
     </div>
   );
@@ -200,7 +200,7 @@ export default function EmployeeProfilePage() {
   // Render leave applications component
   const renderLeaveApplications = () => (
     <div className="space-y-8">
-      <LeaveManagement leaveData={leaves} />
+      <EmployeeLeaves leaveData={leaves} />
     </div>
   );
 
