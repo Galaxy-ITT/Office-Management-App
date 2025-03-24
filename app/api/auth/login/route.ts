@@ -132,13 +132,13 @@ export async function POST(request: NextRequest) {
           redirectPath = '/pages/super-admin'
           break
         case 'Registry':
-          redirectPath = '/pages/registry'
+          redirectPath = '/pages/admin'
           break
         case 'Human Resource':
           redirectPath = '/pages/hr'
           break
         case 'Boss':
-          redirectPath = '/pages/boss'
+          redirectPath = '/pages/boss-dashboard'
           break
         case 'Employee':
           redirectPath = '/pages/employee-profile'

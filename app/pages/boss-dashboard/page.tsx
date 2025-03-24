@@ -20,7 +20,7 @@ export default function BossDashboard() {
   
   useEffect(() => {
     // Check if user is authenticated
-    if (!userData || !userData.data) {
+    if (!userData) {
       router.push("/pages/admins-login")
     }
   }, [userData, router])
@@ -70,7 +70,7 @@ export default function BossDashboard() {
   }
 
   return (
-    <FileSystemProvider adminData={userData?.data}>
+    <FileSystemProvider adminData={userData}>
       <SidebarProvider>
         <div className="flex min-h-screen bg-background">
           <BossSidebar onMenuSelect={handleMenuSelect} />

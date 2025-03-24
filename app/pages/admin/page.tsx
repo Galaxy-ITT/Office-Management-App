@@ -13,15 +13,15 @@ export default function DashboardPage() {
   
   useEffect(() => {
     // Check if user is authenticated
-    if (!userData || !userData.data) {
+    if (!userData) {
       router.push("/pages/admins-login")
     }
   }, [userData, router])
 
   return (
-    <FileSystemProvider adminData={userData?.data}>
+    <FileSystemProvider adminData={userData}>
       <DashboardLayout 
-        adminData={userData?.data}
+        adminData={userData}
       />
       <Toaster />
     </FileSystemProvider>
