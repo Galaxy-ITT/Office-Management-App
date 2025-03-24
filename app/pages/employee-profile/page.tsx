@@ -3,7 +3,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { UserContext } from "@/userContext/userContext";
 import EmployeeSidebar from "./Sidebar";
-import { fetchEmployeePerformance, fetchEmployeeLeaves, fetchEmployeeDetails, fetchEmployeeSkills, fetchEmployeeCourses } from "./_queries";
+import { fetchEmployeePerformance, fetchEmployeeLeaves, fetchEmployeeDetails, fetchEmployeeSkills, fetchEmployeeCourses, fetchEmployeeTasks } from "./_queries";
 import { useToast } from "@/hooks/use-toast";
 import dynamic from "next/dynamic"
 import EmployeeHeader from "@/components/employee-header"
@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { EmployeeLeaves } from "@/app/pages/employee-profile/_components/Employee-leaves"
 import EmployeePerformance from "@/app/pages/employee-profile/_components/employee-performance"
+import EmployeeTasks from "@/app/pages/employee-profile/_components/employee-tasks"
 
 // Dynamic imports for better performance
 const EmployeeDetails = dynamic(() => import("@/app/pages/employee-profile/_components/employee-details"))
@@ -88,6 +89,22 @@ type AttendanceData = {
   monthly: number;
 };
 
+// Define type for task data
+type TaskData = {
+  task_id: string;
+  title: string;
+  description: string;
+  employee_id: string;
+  assigned_by: number;
+  due_date: string;
+  priority: string;
+  status: string;
+  completion_date: string | null;
+  completion_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export default function EmployeeProfilePage() {
   const { userData } = useContext(UserContext);
   const { toast } = useToast();
@@ -105,6 +122,7 @@ export default function EmployeeProfilePage() {
   const [loading, setLoading] = useState(true);
   const [skills, setSkills] = useState<SkillData[]>([]);
   const [courses, setCourses] = useState<CourseData[]>([]);
+  const [tasks, setTasks] = useState<TaskData[]>([]);
 
   // Authentication check
   useEffect(() => {
@@ -154,6 +172,12 @@ export default function EmployeeProfilePage() {
         if (coursesResult.success && Array.isArray(coursesResult.data)) {
           setCourses(coursesResult.data as CourseData[]);
         }
+        
+        // Fetch tasks data
+        const tasksResult = await fetchEmployeeTasks(userData.employee_id);
+        if (tasksResult.success && Array.isArray(tasksResult.data)) {
+          setTasks(tasksResult.data as TaskData[]);
+        }
       } catch (error) {
         console.error("Error loading data:", error);
         toast({
@@ -179,6 +203,7 @@ export default function EmployeeProfilePage() {
         {details && <EmployeeDetails employeeDetails={details} />}
         {performance.length > 0 && <EmployeePerformance performanceData={performance} />}
         {leaves.length > 0 && <EmployeeLeaves leaveData={leaves} compact={true} hideApplyButton={true} />}
+        {tasks.length > 0 && <EmployeeTasks taskData={tasks} />}
         <EmployeeAttendance 
           employeeName={userData?.name || "Overview"} 
           attendanceData={attendanceData} 
@@ -209,6 +234,13 @@ export default function EmployeeProfilePage() {
     </div>
   );
 
+  // Add new render function for tasks
+  const renderTasks = () => (
+    <div className="space-y-8">
+      <EmployeeTasks taskData={tasks} />
+    </div>
+  );
+
   return (
     <div className="flex h-screen">
       <EmployeeSidebar activePage={activePage} setActivePage={setActivePage} />
@@ -230,7 +262,8 @@ export default function EmployeeProfilePage() {
               {activePage === 'Dashboard' ? renderDashboard() :
                activePage === 'Performance' ? renderPerformance() :
                activePage === 'Leave Applications' ? renderLeaveApplications() :
-               activePage === 'Personal Details' ? renderPersonalDetails() : null}
+               activePage === 'Personal Details' ? renderPersonalDetails() :
+               activePage === 'Tasks' ? renderTasks() : null}
             </>
           )}
         </div>

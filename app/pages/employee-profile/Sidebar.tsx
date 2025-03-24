@@ -11,7 +11,11 @@ import {
   Star, 
   CalendarDays,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LayoutDashboard,
+  BarChart,
+  Calendar,
+  CheckSquare
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -20,6 +24,7 @@ const employeePages = [
   { name: 'Dashboard', icon: UserCircle },
   { name: 'Performance', icon: Star },
   { name: 'Leave Applications', icon: ClipboardCheck },
+  { name: 'Tasks', icon: CheckSquare },
   { name: 'Personal Details', icon: CalendarDays },
 ];
 

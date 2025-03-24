@@ -308,3 +308,22 @@ export async function submitLeaveApplication(leaveData: any) {
     };
   }
 }
+
+export async function fetchEmployeeTasks(employeeId: string) {
+  try {
+    const [tasks] = await pool.query(
+      `SELECT * FROM tasks_table 
+       WHERE employee_id = ?
+       ORDER BY due_date ASC`,
+      [employeeId]
+    );
+    
+    return { success: true, data: tasks };
+  } catch (error) {
+    console.error("Error fetching employee tasks:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error) 
+    };
+  }
+}
