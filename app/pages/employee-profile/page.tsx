@@ -174,18 +174,16 @@ export default function EmployeeProfilePage() {
 
   // Render dashboard component 
   const renderDashboard = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 space-y-8">
+    <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+      <div className="space-y-8">
         {details && <EmployeeDetails employeeDetails={details} />}
         {performance.length > 0 && <EmployeePerformance performanceData={performance} />}
+        {leaves.length > 0 && <EmployeeLeaves leaveData={leaves} compact={true} hideApplyButton={true} />}
         <EmployeeAttendance 
           employeeName={userData?.name || "Overview"} 
           attendanceData={attendanceData} 
         />
-        <ProfessionalDevelopment />
-      </div>
-      <div className="space-y-8">
-        {leaves.length > 0 && <EmployeeLeaves leaveData={leaves} compact={true} />}
+        <ProfessionalDevelopment skills={skills} courses={courses} hideAddButtons={true} />
       </div>
     </div>
   );

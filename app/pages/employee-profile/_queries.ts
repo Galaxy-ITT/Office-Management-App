@@ -1,6 +1,7 @@
 "use server"
 
 import pool from "@/app/database/connection";
+import { RowDataPacket, FieldPacket } from "mysql2/promise";
 
 export async function fetchEmployeePerformance(employeeId: string) {
   try {
@@ -30,6 +31,20 @@ export async function fetchEmployeePerformance(employeeId: string) {
 
 export async function fetchEmployeeLeaves(employeeId: string) {
   try {
+    // Define a type for leave records
+    type LeaveRecord = {
+      leave_id: string;
+      leave_type: string;
+      start_date: Date | string;
+      end_date: Date | string;
+      reason: string;
+      status: string;
+      evidence_name: string | null;
+      evidence_url: string | null;
+      evidence_file: string | null;
+      application_date: Date | string;
+    };
+
     const [leaves] = await pool.query(
       `SELECT 
         leave_id,
@@ -38,13 +53,53 @@ export async function fetchEmployeeLeaves(employeeId: string) {
         end_date,
         reason,
         status,
+        evidence_name, 
+        evidence_url,
+        evidence_file,
         application_date
       FROM leave_applications_table
       WHERE employee_id = ?
       ORDER BY application_date DESC`,
       [employeeId]
-    );
-    return { success: true, data: leaves };
+    ) as [RowDataPacket[], FieldPacket[]];
+    
+    // Convert binary data to base64 strings for serialization
+    const serializedLeaves = Array.isArray(leaves) ? 
+      leaves.map(leave => {
+        const serializedLeave = { ...leave };
+        
+        // Convert dates to ISO strings
+        if (serializedLeave.start_date instanceof Date) {
+          serializedLeave.start_date = serializedLeave.start_date.toISOString();
+        }
+        if (serializedLeave.end_date instanceof Date) {
+          serializedLeave.end_date = serializedLeave.end_date.toISOString();
+        }
+        if (serializedLeave.application_date instanceof Date) {
+          serializedLeave.application_date = serializedLeave.application_date.toISOString();
+        }
+        
+        // Convert evidence_file from Uint8Array/Buffer to base64 string
+        if (serializedLeave.evidence_file) {
+          if (Buffer.isBuffer(serializedLeave.evidence_file)) {
+            serializedLeave.evidence_file = Buffer.from(serializedLeave.evidence_file).toString('base64');
+          } else if (serializedLeave.evidence_file instanceof Uint8Array) {
+            serializedLeave.evidence_file = Buffer.from(serializedLeave.evidence_file).toString('base64');
+          } else if (typeof serializedLeave.evidence_file === 'object') {
+            // Handle potential serialized buffer format
+            try {
+              serializedLeave.evidence_file = Buffer.from(serializedLeave.evidence_file).toString('base64');
+            } catch (err) {
+              console.error('Error converting evidence_file to base64:', err);
+              serializedLeave.evidence_file = null;
+            }
+          }
+        }
+        
+        return serializedLeave;
+      }) : [];
+    
+    return { success: true, data: serializedLeaves as LeaveRecord[] };
   } catch (error) {
     console.error('Error fetching leaves:', error);
     return { success: false, error: 'Failed to fetch leave data' };
@@ -68,7 +123,7 @@ export async function fetchEmployeeDetails(employeeId: string) {
       LEFT JOIN departments_table d ON e.department_id = d.department_id
       WHERE e.employee_id = ?`,
       [employeeId]
-    );
+    ) as [RowDataPacket[], FieldPacket[]];
     
     const details = employees[0] || null;
     return { success: true, data: details };
@@ -187,5 +242,69 @@ export async function addEmployeeDocument(employeeId: string, documentData: any)
   } catch (error) {
     console.error('Error adding document:', error);
     return { success: false, error: 'Failed to add document' };
+  }
+}
+
+export async function submitLeaveApplication(leaveData: any) {
+  try {
+    const {
+      leave_id,
+      employee_id,
+      leave_type,
+      start_date,
+      end_date,
+      reason,
+      evidence_url,
+      evidence_name,
+      evidence_file,
+      status,
+      application_date
+    } = leaveData;
+
+    // Format the application_date to be MySQL compatible
+    let formattedDate = application_date;
+    if (application_date) {
+      // Convert ISO string to MySQL datetime format (YYYY-MM-DD HH:MM:SS)
+      const date = new Date(application_date);
+      formattedDate = date.toISOString().slice(0, 19).replace('T', ' ');
+    }
+
+    await pool.query(
+      `INSERT INTO leave_applications_table (
+        leave_id, 
+        employee_id, 
+        leave_type, 
+        start_date, 
+        end_date, 
+        reason, 
+        evidence_name, 
+        evidence_url, 
+        evidence_file,
+        status, 
+        application_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        leave_id,
+        employee_id,
+        leave_type,
+        start_date,
+        end_date,
+        reason,
+        evidence_name,
+        evidence_url,
+        evidence_file,
+        status || 'pending',
+        formattedDate || new Date().toISOString().slice(0, 19).replace('T', ' ')
+      ]
+    );
+
+    // Return a simple serializable object instead of the MySQL result
+    return { success: true, message: 'Leave application submitted successfully' };
+  } catch (error: unknown) {
+    console.error("Error submitting leave application:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : String(error) 
+    };
   }
 }

@@ -24,11 +24,21 @@ interface Course {
   notes: string;
 }
 
-export default function ProfessionalDevelopment() {
+interface ProfessionalDevelopmentProps {
+  skills?: Skill[];
+  courses?: Course[];
+  hideAddButtons?: boolean;
+}
+
+export default function ProfessionalDevelopment({ 
+  skills: initialSkills = [], 
+  courses: initialCourses = [], 
+  hideAddButtons = false 
+}: ProfessionalDevelopmentProps) {
   const { userData } = useContext(UserContext);
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [skills, setSkills] = useState<Skill[]>(initialSkills);
+  const [courses, setCourses] = useState<Course[]>(initialCourses);
 
   useEffect(() => {
     const loadData = async () => {
@@ -54,8 +64,13 @@ export default function ProfessionalDevelopment() {
       }
     };
 
-    loadData();
-  }, [userData]);
+    // Only fetch data if no initial data was provided
+    if (initialSkills.length === 0 && initialCourses.length === 0) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [userData, initialSkills, initialCourses]);
 
   const getBadgeVariantForProficiency = (level: string) => {
     switch (level) {
@@ -75,86 +90,100 @@ export default function ProfessionalDevelopment() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Professional Development</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+      <div className="flex flex-col space-y-1.5 p-6">
+        <h3 className="text-2xl font-semibold leading-none tracking-tight">Professional Development</h3>
+        <p className="text-sm text-muted-foreground">
+          Your skills and training courses
+        </p>
+      </div>
+
+      {/* Skills section */}
+      <div className="p-6 pt-0">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-lg font-medium">Skills</h4>
+          {!hideAddButtons && (
+            <Button variant="outline" size="sm">
+              Add Skill
+            </Button>
+          )}
+        </div>
         {loading ? (
           <div className="flex justify-center py-4">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : (
           <>
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-semibold">Skills</h3>
-                <Button variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-1" /> Add Skill
-                </Button>
-              </div>
-              
-              {skills.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {skills.map((skill) => (
-                    <div key={skill.skill_id} className="border rounded-md p-3">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">{skill.skill_name}</span>
-                        <Badge variant={getBadgeVariantForProficiency(skill.proficiency_level)}>
-                          {skill.proficiency_level}
-                        </Badge>
-                      </div>
-                      {skill.years_experience && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {skill.years_experience} year{skill.years_experience !== 1 ? 's' : ''} experience
-                        </p>
-                      )}
+            {skills.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {skills.map((skill) => (
+                  <div key={skill.skill_id} className="border rounded-md p-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{skill.skill_name}</span>
+                      <Badge variant={getBadgeVariantForProficiency(skill.proficiency_level)}>
+                        {skill.proficiency_level}
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No skills have been added yet.</p>
-              )}
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-semibold">Training & Certifications</h3>
-                <Button variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-1" /> Add Course
-                </Button>
-              </div>
-              
-              {courses.length > 0 ? (
-                <div className="space-y-3">
-                  {courses.map((course) => (
-                    <div key={course.course_id} className="border rounded-md p-3">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">{course.course_name}</span>
-                        <Badge variant={getBadgeVariantForStatus(course.status)}>
-                          {course.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {course.provider || "No provider specified"}
+                    {skill.years_experience && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {skill.years_experience} year{skill.years_experience !== 1 ? 's' : ''} experience
                       </p>
-                      {course.certification_obtained && (
-                        <Badge variant="outline" className="mt-2">Certification Obtained</Badge>
-                      )}
-                      {course.notes && (
-                        <p className="text-sm mt-2">{course.notes}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No courses or certifications have been added yet.</p>
-              )}
-            </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No skills have been added yet.</p>
+            )}
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Courses section */}
+      <div className="p-6 pt-0">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-lg font-medium">Training & Courses</h4>
+          {!hideAddButtons && (
+            <Button variant="outline" size="sm">
+              Add Course
+            </Button>
+          )}
+        </div>
+        {loading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : (
+          <>
+            {courses.length > 0 ? (
+              <div className="space-y-3">
+                {courses.map((course) => (
+                  <div key={course.course_id} className="border rounded-md p-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{course.course_name}</span>
+                      <Badge variant={getBadgeVariantForStatus(course.status)}>
+                        {course.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {course.provider || "No provider specified"}
+                    </p>
+                    {course.certification_obtained && (
+                      <Badge variant="outline" className="mt-2">Certification Obtained</Badge>
+                    )}
+                    {course.notes && (
+                      <p className="text-sm mt-2">{course.notes}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No courses or certifications have been added yet.</p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
