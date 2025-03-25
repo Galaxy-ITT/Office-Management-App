@@ -75,6 +75,23 @@ export interface ReviewedRecord {
   fileNumber: string;
 }
 
+// Define type for leave application data
+export interface LeaveApplication {
+  leave_id: string;
+  employee_id: string;
+  employee_name: string;
+  employee_position: string;
+  department_name: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  status: string;
+  application_date: string;
+  evidence_url?: string | null;
+  evidence_name?: string | null;
+}
+
 export async function fetchBossRecords(): Promise<{ 
   success: boolean; 
   data?: ForwardedBossRecord[]; 
@@ -312,5 +329,131 @@ export async function fetchReviewedRecords(): Promise<{
       success: false,
       error: error?.message || "Failed to fetch reviewed records"
     };
+  }
+}
+
+export async function fetchLeaveApplications(): Promise<{
+  success: boolean;
+  data?: LeaveApplication[];
+  error?: string;
+}> {
+  try {
+    const query = `
+      SELECT 
+        l.leave_id,
+        l.employee_id,
+        e.name as employee_name,
+        e.position as employee_position,
+        d.name as department_name,
+        l.leave_type,
+        l.start_date,
+        l.end_date,
+        l.reason,
+        l.status,
+        l.evidence_url,
+        l.evidence_name,
+        l.application_date
+      FROM 
+        leave_applications_table l
+      JOIN 
+        employees_table e ON l.employee_id = e.employee_id
+      LEFT JOIN 
+        departments_table d ON e.department_id = d.department_id
+      ORDER BY 
+        l.application_date DESC
+    `;
+    
+    const [records] = await pool.query(query) as [RowDataPacket[], FieldPacket[]];
+    
+    if (Array.isArray(records)) {
+      return {
+        success: true,
+        data: records.map(record => ({
+          leave_id: record.leave_id,
+          employee_id: record.employee_id,
+          employee_name: record.employee_name,
+          employee_position: record.employee_position,
+          department_name: record.department_name,
+          leave_type: record.leave_type,
+          start_date: record.start_date instanceof Date ? 
+            record.start_date.toISOString().split('T')[0] : record.start_date,
+          end_date: record.end_date instanceof Date ? 
+            record.end_date.toISOString().split('T')[0] : record.end_date,
+          reason: record.reason,
+          status: record.status,
+          application_date: record.application_date instanceof Date ? 
+            record.application_date.toISOString() : record.application_date,
+          evidence_url: record.evidence_url,
+          evidence_name: record.evidence_name
+        }))
+      };
+    }
+    
+    return {
+      success: true,
+      data: []
+    };
+    
+  } catch (error: any) {
+    console.error("Error fetching leave applications:", error);
+    return {
+      success: false,
+      error: error?.message || "Failed to fetch leave applications"
+    };
+  }
+}
+
+export async function updateLeaveStatus(
+  leaveId: string, 
+  status: 'approved' | 'rejected', 
+  adminId: number,
+  comment: string
+): Promise<{ 
+  success: boolean; 
+  message?: string; 
+  error?: string 
+}> {
+  const connection = await pool.getConnection();
+  
+  try {
+    await connection.beginTransaction();
+    
+    // Update the leave application status
+    await connection.execute(
+      `UPDATE leave_applications_table 
+       SET status = ?, approved_by = ?, updated_at = NOW() 
+       WHERE leave_id = ?`,
+      [status, adminId, leaveId]
+    );
+    
+    // Add a comment to the leave application if provided
+    if (comment) {
+      // You could create a comments table for this, but for now just add it to a notes column
+      // This assumes you've added a boss_comment column to the leave_applications_table
+      await connection.execute(
+        `UPDATE leave_applications_table 
+         SET boss_comment = ? 
+         WHERE leave_id = ?`,
+        [comment, leaveId]
+      );
+    }
+    
+    await connection.commit();
+    
+    return {
+      success: true,
+      message: `Leave application ${status} successfully`
+    };
+    
+  } catch (error: any) {
+    await connection.rollback();
+    console.error(`Error ${status} leave application:`, error);
+    
+    return {
+      success: false,
+      error: error?.message || `Failed to ${status} leave application`
+    };
+  } finally {
+    connection.release();
   }
 }

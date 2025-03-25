@@ -32,7 +32,7 @@ export function BossSidebar({ onMenuSelect }: BossSidebarProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { userData } = useContext(UserContext)
-  const bossName = userData?.data?.name || "Boss"
+  const bossName = userData?.name || "Boss"
   const [searchQuery, setSearchQuery] = useState("")
   
   const currentDate = new Date().toLocaleDateString("en-US", {
