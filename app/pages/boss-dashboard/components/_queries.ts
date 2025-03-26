@@ -369,7 +369,20 @@ export async function fetchLeaveApplications(status?: string): Promise<{
     // Build the query with an optional WHERE clause for status filtering
     let query = `
       SELECT 
-        l.*,
+        l.leave_id,
+        l.employee_id,
+        l.leave_type,
+        l.start_date,
+        l.end_date,
+        l.reason,
+        l.status,
+        l.approved_by,
+        l.boss_comment,
+        l.hod_comment,
+        l.evidence_name,
+        l.evidence_url,
+        l.application_date,
+        l.updated_at,
         e.name as employee_name,
         e.position as employee_position,
         d.name as department_name
@@ -417,8 +430,12 @@ export async function updateLeaveStatus(
     
     // First, get the leave application details to reference the employee_id
     const [leaveApplicationsResult] = await connection.query(
-      `SELECT * FROM leave_applications_table WHERE leave_id = ?`,
-      [leaveId]
+      `SELECT l.*, e.name as employee_name, e.email as employee_email, a.name as admin_name
+       FROM leave_applications_table l
+       JOIN employees_table e ON l.employee_id = e.employee_id
+       JOIN lists_of_admins a ON a.admin_id = ?
+       WHERE l.leave_id = ?`,
+      [adminId, leaveId]
     ) as [RowDataPacket[], FieldPacket[]];
     
     if (leaveApplicationsResult.length === 0) {
@@ -461,6 +478,24 @@ export async function updateLeaveStatus(
     }
     
     await connection.commit();
+    
+    // Send email notification about the leave status
+    try {
+      const { sendLeaveStatusNotification } = await import("@/server-side/adminEmail");
+      await sendLeaveStatusNotification(
+        leaveApplication.employee_email,
+        leaveApplication.employee_name,
+        status,
+        leaveApplication.leave_type,
+        leaveApplication.start_date,
+        leaveApplication.end_date,
+        leaveApplication.admin_name,
+        comment
+      );
+    } catch (emailError) {
+      console.error("Failed to send leave status email:", emailError);
+      // We don't want to fail the transaction if just the email fails
+    }
     
     return {
       success: true,
@@ -695,9 +730,21 @@ export async function fetchApprovedLeaves(): Promise<{
   try {
     const query = `
       SELECT 
-        l.*,
+        l.leave_id,
+        l.employee_id,
+        l.leave_type,
+        l.start_date,
+        l.end_date,
+        l.reason,
+        l.status,
+        l.boss_comment,
+        l.hod_comment,
+        l.evidence_name,
+        l.evidence_url,
+        l.application_date,
+        l.updated_at,
         a.approval_date,
-        a.comment as boss_comment,
+        a.comment as approval_comment,
         e.name as employee_name,
         e.position as employee_position,
         d.name as department_name,
@@ -740,7 +787,19 @@ export async function fetchRejectedLeaves(): Promise<{
   try {
     const query = `
       SELECT 
-        l.*,
+        l.leave_id,
+        l.employee_id,
+        l.leave_type,
+        l.start_date,
+        l.end_date,
+        l.reason,
+        l.status,
+        l.boss_comment,
+        l.hod_comment,
+        l.evidence_name,
+        l.evidence_url,
+        l.application_date,
+        l.updated_at,
         r.rejection_date,
         r.reason as rejection_reason,
         e.name as employee_name,

@@ -279,3 +279,63 @@ export async function sendEmployeeAccountNotification(
     return false;
   }
 }
+
+export async function sendLeaveStatusNotification(
+  to: string,
+  employeeName: string,
+  status: 'approved' | 'rejected',
+  leaveType: string,
+  startDate: string,
+  endDate: string,
+  adminName: string,
+  adminComment: string | null
+): Promise<boolean> {
+  try {
+    const formattedStartDate = new Date(startDate).toLocaleDateString();
+    const formattedEndDate = new Date(endDate).toLocaleDateString();
+    const statusColor = status === 'approved' ? '#2d89ef' : '#d9534f';
+    const statusText = status === 'approved' ? 'Approved' : 'Rejected';
+    
+    const subject = `Leave Request ${statusText} - Office Management`;
+    const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+      <h2 style="color: ${statusColor}; text-align: center;">Leave Request ${statusText}</h2>
+      <p>Dear <strong>${employeeName}</strong>,</p>
+      <p>We would like to inform you that your leave request has been <strong>${status}</strong>.</p>
+      
+      <div style="background: #f3f3f3; padding: 15px; border-radius: 6px; margin: 15px 0;">
+        <p><strong>Leave Type:</strong> ${leaveType}</p>
+        <p><strong>Period:</strong> ${formattedStartDate} to ${formattedEndDate}</p>
+        <p><strong>Decision By:</strong> ${adminName}</p>
+        ${adminComment ? `<p><strong>Comment:</strong> ${adminComment}</p>` : ''}
+      </div>
+      
+      ${status === 'approved' 
+        ? `<p>Please ensure to complete any pending tasks before your leave starts and delegate your responsibilities appropriately.</p>`
+        : `<p>If you have any questions regarding this decision, please contact your supervisor or HR department for further clarification.</p>`
+      }
+
+      <hr style="border: 0; height: 1px; background: #ddd; margin: 20px 0;">
+      
+      <p>You can view your leave history by logging into your account:</p>
+      <p><a href="http://localhost:3000/pages/admins-login" style="background: #2d89ef; color: #fff; padding: 10px 15px; text-decoration: none; border-radius: 4px; display: inline-block;">Log in to OfficeManagement</a></p>
+      
+      <p style="text-align: center; color: #888;">Best regards, <br> <strong>OfficeManagement Team</strong></p>
+    </div>
+    `;
+
+    // Send email
+    const info = await transporter.sendMail({
+      from: `"Office Management" <${process.env.EMAIL}>`,
+      to,
+      subject,
+      html,
+    });
+
+    console.log(`📧 Leave status notification sent successfully to ${to}`);
+    return !!info.messageId;
+  } catch (error) {
+    console.error("❌ Error sending leave status notification:", error);
+    return false;
+  }
+}

@@ -21,6 +21,16 @@ import { Button } from "@/components/ui/button"
 import ApprovedLeaves from "./components/ApprovedLeaves"
 import RejectedLeaves from "./components/RejectedLeaves"
 
+// Define interface for StatsCard props
+interface StatsCardProps {
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ReactNode;
+  trend: string;
+  trendUp?: boolean;
+}
+
 export default function BossDashboard() {
   const { userData } = useContext(UserContext)
   const router = useRouter()
@@ -266,7 +276,7 @@ export default function BossDashboard() {
   )
 }
 
-function StatsCard({ title, value, description, icon, trend, trendUp = true }) {
+function StatsCard({ title, value, description, icon, trend, trendUp = true }: StatsCardProps) {
   return (
     <Card>
       <CardContent className="p-6">
@@ -290,9 +300,15 @@ function StatsCard({ title, value, description, icon, trend, trendUp = true }) {
   )
 }
 
+// Define interface for LimitedStaffList props
+interface LimitedStaffListProps {
+  limit?: number;
+  onViewAll: () => void;
+}
+
 // Function to display limited staff list
-function LimitedStaffList({ limit = 5, onViewAll }) {
-  const [staff, setStaff] = useState([])
+function LimitedStaffList({ limit = 5, onViewAll }: LimitedStaffListProps) {
+  const [staff, setStaff] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {

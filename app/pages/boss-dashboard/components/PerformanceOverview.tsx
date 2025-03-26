@@ -9,9 +9,25 @@ import { Phone, Loader2 } from "lucide-react"
 import { fetchEmployeePerformance } from "./_queries"
 import { toast } from "@/hooks/use-toast"
 
+// Define the interface for the performance data
+interface EmployeePerformance {
+  employee_id: string;
+  name: string;
+  position: string;
+  department_name: string | null;
+  email: string;
+  phone: string | null;
+  performance_score: number;
+  attendance: number;
+  notes: {
+    type: 'positive' | 'negative';
+    note: string;
+  }[];
+}
+
 export default function PerformanceOverview() {
-  const [selectedStaff, setSelectedStaff] = useState(null)
-  const [performanceData, setPerformanceData] = useState([])
+  const [selectedStaff, setSelectedStaff] = useState<EmployeePerformance | null>(null)
+  const [performanceData, setPerformanceData] = useState<EmployeePerformance[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -23,7 +39,7 @@ export default function PerformanceOverview() {
     try {
       const result = await fetchEmployeePerformance()
       if (result.success && result.data) {
-        setPerformanceData(result.data)
+        setPerformanceData(result.data as EmployeePerformance[])
       } else {
         toast({
           title: "Error",
@@ -121,7 +137,7 @@ export default function PerformanceOverview() {
             <Button variant="outline" onClick={() => setSelectedStaff(null)}>
               Close
             </Button>
-            <Button onClick={() => window.open(`tel:${selectedStaff.phone}`)}>
+            <Button onClick={() => selectedStaff?.phone && window.open(`tel:${selectedStaff.phone}`)}>
               <Phone className="h-4 w-4 mr-2" />
               Call Staff
             </Button>
