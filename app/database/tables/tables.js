@@ -260,7 +260,7 @@ export async function createAllTables() {
     `)
     console.log("employee_documents_table created successfully")
 
-    // Create leave_applications_table
+    // Create leave_applications_table (with boss_comment and hod_comment)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS leave_applications_table (
         leave_id VARCHAR(36) PRIMARY KEY,
@@ -271,6 +271,8 @@ export async function createAllTables() {
         reason TEXT,
         status VARCHAR(50) DEFAULT 'pending',
         approved_by INT,
+        boss_comment TEXT,
+        hod_comment TEXT,
         evidence_name VARCHAR(255),
         evidence_url VARCHAR(512),
         evidence_file LONGBLOB,
@@ -282,6 +284,42 @@ export async function createAllTables() {
       )
     `)
     console.log("leave_applications_table created successfully")
+
+    // Create approved_leaves_table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS approved_leaves_table (
+        approval_id VARCHAR(36) PRIMARY KEY,
+        leave_id VARCHAR(36) NOT NULL,
+        employee_id VARCHAR(36) NOT NULL,
+        approved_by INT NOT NULL,
+        approval_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        comment TEXT,
+        FOREIGN KEY (leave_id) REFERENCES leave_applications_table(leave_id) ON DELETE CASCADE,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        FOREIGN KEY (approved_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        INDEX idx_leave_id (leave_id),
+        INDEX idx_employee_id (employee_id)
+      )
+    `)
+    console.log("approved_leaves_table created successfully")
+
+    // Create rejected_leaves_table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rejected_leaves_table (
+        rejection_id VARCHAR(36) PRIMARY KEY,
+        leave_id VARCHAR(36) NOT NULL,
+        employee_id VARCHAR(36) NOT NULL,
+        rejected_by INT NOT NULL,
+        rejection_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reason TEXT,
+        FOREIGN KEY (leave_id) REFERENCES leave_applications_table(leave_id) ON DELETE CASCADE,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        FOREIGN KEY (rejected_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        INDEX idx_leave_id (leave_id),
+        INDEX idx_employee_id (employee_id)
+      )
+    `)
+    console.log("rejected_leaves_table created successfully")
 
     return { success: true, message: "Tables created successfully" }
   } catch (error) {

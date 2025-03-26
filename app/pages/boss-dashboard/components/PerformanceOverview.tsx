@@ -1,60 +1,47 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Phone } from "lucide-react"
-
-const performanceData = [
-  {
-    id: 1,
-    name: "Alice Johnson",
-    score: 92,
-    attendance: 98,
-    department: "Sales",
-    position: "Senior Sales Representative",
-    email: "alice.johnson@example.com",
-    phone: "+1234567890",
-    hodNotes: [
-      { type: "positive", note: "Consistently exceeds sales targets" },
-      { type: "positive", note: "Great team player" },
-      { type: "negative", note: "Could improve on documentation" },
-    ],
-  },
-  {
-    id: 2,
-    name: "Bob Smith",
-    score: 78,
-    attendance: 95,
-    department: "IT",
-    position: "Software Developer",
-    email: "bob.smith@example.com",
-    phone: "+1234567891",
-    hodNotes: [
-      { type: "positive", note: "Quick learner of new technologies" },
-      { type: "negative", note: "Sometimes misses project deadlines" },
-    ],
-  },
-  {
-    id: 3,
-    name: "Carol Williams",
-    score: 85,
-    attendance: 97,
-    department: "Marketing",
-    position: "Marketing Specialist",
-    email: "carol.williams@example.com",
-    phone: "+1234567892",
-    hodNotes: [
-      { type: "positive", note: "Creative and innovative in campaign designs" },
-      { type: "positive", note: "Strong analytical skills" },
-    ],
-  },
-]
+import { Phone, Loader2 } from "lucide-react"
+import { fetchEmployeePerformance } from "./_queries"
+import { toast } from "@/hooks/use-toast"
 
 export default function PerformanceOverview() {
   const [selectedStaff, setSelectedStaff] = useState(null)
+  const [performanceData, setPerformanceData] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadPerformanceData()
+  }, [])
+
+  const loadPerformanceData = async () => {
+    setLoading(true)
+    try {
+      const result = await fetchEmployeePerformance()
+      if (result.success && result.data) {
+        setPerformanceData(result.data)
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to load performance data",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error loading performance data:", error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <Card>
@@ -62,20 +49,28 @@ export default function PerformanceOverview() {
         <CardTitle>Performance Overview</CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-4">
-          {performanceData.map((staff) => (
-            <li key={staff.id} className="space-y-2">
-              <div className="flex justify-between items-center">
-                <p className="font-medium">{staff.name}</p>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedStaff(staff)}>
-                  View Details
-                </Button>
-              </div>
-              <Progress value={staff.score} className="h-2" />
-              <p className="text-sm text-muted-foreground">Performance Score: {staff.score}%</p>
-            </li>
-          ))}
-        </ul>
+        {loading ? (
+          <div className="flex justify-center items-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : performanceData.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">No performance data available</p>
+        ) : (
+          <ul className="space-y-4">
+            {performanceData.map((staff) => (
+              <li key={staff.employee_id} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <p className="font-medium">{staff.name}</p>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedStaff(staff)}>
+                    View Details
+                  </Button>
+                </div>
+                <Progress value={staff.performance_score} className="h-2" />
+                <p className="text-sm text-muted-foreground">Performance Score: {staff.performance_score}%</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </CardContent>
 
       <Dialog open={!!selectedStaff} onOpenChange={() => setSelectedStaff(null)}>
@@ -88,12 +83,12 @@ export default function PerformanceOverview() {
               <div>
                 <h3 className="font-semibold text-lg">{selectedStaff.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {selectedStaff.position} - {selectedStaff.department}
+                  {selectedStaff.position} - {selectedStaff.department_name || "No Department"}
                 </p>
               </div>
               <div className="space-y-2">
                 <p>
-                  <strong>Performance Score:</strong> {selectedStaff.score}%
+                  <strong>Performance Score:</strong> {selectedStaff.performance_score}%
                 </p>
                 <p>
                   <strong>Attendance:</strong> {selectedStaff.attendance}%
@@ -101,14 +96,16 @@ export default function PerformanceOverview() {
                 <p>
                   <strong>Email:</strong> {selectedStaff.email}
                 </p>
-                <p>
-                  <strong>Phone:</strong> {selectedStaff.phone}
-                </p>
+                {selectedStaff.phone && (
+                  <p>
+                    <strong>Phone:</strong> {selectedStaff.phone}
+                  </p>
+                )}
               </div>
               <div>
-                <h4 className="font-semibold">HOD Notes:</h4>
+                <h4 className="font-semibold">Management Notes:</h4>
                 <ul className="space-y-2 mt-2">
-                  {selectedStaff.hodNotes.map((note, index) => (
+                  {selectedStaff.notes.map((note, index) => (
                     <li
                       key={index}
                       className={`text-sm ${note.type === "positive" ? "text-green-600" : "text-red-600"}`}
@@ -124,7 +121,7 @@ export default function PerformanceOverview() {
             <Button variant="outline" onClick={() => setSelectedStaff(null)}>
               Close
             </Button>
-            <Button onClick={() => console.log(`Calling ${selectedStaff.name}`)}>
+            <Button onClick={() => window.open(`tel:${selectedStaff.phone}`)}>
               <Phone className="h-4 w-4 mr-2" />
               Call Staff
             </Button>

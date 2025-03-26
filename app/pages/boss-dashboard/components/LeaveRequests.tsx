@@ -30,7 +30,8 @@ export default function LeaveRequests() {
   const loadLeaveApplications = async () => {
     setLoading(true)
     try {
-      const result = await fetchLeaveApplications()
+      // Only fetch pending leave applications
+      const result = await fetchLeaveApplications('pending')
       if (result.success && result.data) {
         setLeaveApplications(result.data)
       } else {
