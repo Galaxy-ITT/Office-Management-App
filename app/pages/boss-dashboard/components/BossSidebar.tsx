@@ -64,7 +64,7 @@ export function BossSidebar({ onMenuSelect }: BossSidebarProps) {
   const handleLogout = () => {
     sessionStorage.clear()
     // Redirect to login page
-    router.push("/pages/login")
+    router.push("/pages/admins-login")
     
     toast({
       title: "Logged out",
