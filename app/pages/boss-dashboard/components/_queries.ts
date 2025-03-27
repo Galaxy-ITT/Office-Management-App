@@ -988,3 +988,71 @@ export async function fetchDashboardStats(): Promise<{
     };
   }
 }
+
+export async function searchStaff(query: string): Promise<{ 
+  success: boolean; 
+  results?: Employee[];
+  error?: string 
+}> {
+  try {
+    // Sanitize the search query to prevent SQL injection
+    const sanitizedQuery = query.replace(/[^\w\s@.-]/gi, '');
+    const searchTerm = `%${sanitizedQuery}%`;
+    
+    // Construct the SQL query to search across multiple fields
+    const searchQuery = `
+      SELECT 
+        e.employee_id,
+        e.name,
+        e.position,
+        e.email,
+        e.phone,
+        e.status,
+        d.name as department_name
+      FROM 
+        employees_table e
+      LEFT JOIN 
+        departments_table d ON e.department_id = d.department_id
+      WHERE 
+        e.name LIKE ? OR
+        e.email LIKE ? OR
+        e.position LIKE ? OR
+        d.name LIKE ? OR
+        e.phone LIKE ?
+      ORDER BY 
+        e.name ASC
+      LIMIT 20
+    `;
+    
+    const [results] = await pool.query(searchQuery, [
+      searchTerm, searchTerm, searchTerm, searchTerm, searchTerm
+    ]) as [RowDataPacket[], FieldPacket[]];
+    
+    if (Array.isArray(results)) {
+      return {
+        success: true,
+        results: results.map(employee => ({
+          employee_id: employee.employee_id,
+          name: employee.name,
+          position: employee.position,
+          department_name: employee.department_name,
+          status: employee.status,
+          email: employee.email,
+          phone: employee.phone
+        }))
+      };
+    }
+    
+    return {
+      success: true,
+      results: []
+    };
+    
+  } catch (error: any) {
+    console.error("Error searching staff:", error);
+    return {
+      success: false,
+      error: error?.message || "Failed to search for staff"
+    };
+  }
+}
