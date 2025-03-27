@@ -43,6 +43,7 @@ import DepartmentEmployees from "./_components/DepartmentEmployees"
 import EmployeeProposals from "./_components/EmployeeProposals"
 import PerformanceReviews from "./_components/PerformanceReviews"
 import AssignedTasks from "./_components/AssignedTasks"
+import ForwardedRecords from "./_components/ForwardedRecords"
 import { fetchDashboardStats } from "./_components/_queries"
 
 const pages = [
@@ -51,6 +52,7 @@ const pages = [
   { name: 'Employee Proposals', icon: FileText },
   { name: 'Performance Reviews', icon: Star },
   { name: 'Assigned Tasks', icon: CheckSquare },
+  { name: 'Forwarded Records', icon: Briefcase },
   { name: 'Department Analytics', icon: LineChart },
 ]
 
@@ -349,6 +351,7 @@ export default function DashboardPage() {
            activePage === 'Employee Proposals' ? <EmployeeProposals /> :
            activePage === 'Performance Reviews' ? <PerformanceReviews /> :
            activePage === 'Assigned Tasks' ? <AssignedTasks /> :
+           activePage === 'Forwarded Records' ? <ForwardedRecords /> :
            activePage === 'Department Analytics' ? (
             <div className="text-center py-10">
               <LineChart className="h-12 w-12 mx-auto text-muted-foreground" />

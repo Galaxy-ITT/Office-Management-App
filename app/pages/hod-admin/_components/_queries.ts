@@ -53,6 +53,24 @@ export interface Task {
   created_at: string;
 }
 
+// ForwardedRecord interface
+export interface ForwardedRecord {
+  forward_id: string;
+  record_id: string;
+  file_id: string;
+  file_name?: string;
+  file_path?: string;
+  forwarded_by: number;
+  forwarder_name?: string;
+  forwarded_to: string;
+  recipient_type: string;
+  notes?: string;
+  forward_date: string;
+  status: string;
+  department_id?: number;
+  employee_id?: string;
+}
+
 // Fetch dashboard statistics for HOD
 export async function fetchDashboardStats(departmentId: number, employeeId: string) {
   try {
@@ -359,5 +377,74 @@ export async function updateTask(taskId: string, taskData: any) {
   } catch (error) {
     console.error('Error updating task:', error);
     return { success: false, error: 'Failed to update task' };
+  }
+}
+
+// Fetch forwarded records for a department
+export async function fetchForwardedRecords(departmentName: string, recipientType: string = 'department') {
+  try {
+    const [records] = await pool.query<RowDataPacket[]>(
+      `SELECT fr.forward_id, fr.record_id, fr.file_id, f.name as file_name, 
+              fr.forwarded_by, a.name as forwarder_name, fr.forwarded_to, 
+              fr.recipient_type, fr.notes, fr.forward_date, fr.status,
+              f.type as file_type
+       FROM forwarded_records fr
+       JOIN files_table f ON fr.file_id = f.id
+       JOIN lists_of_admins a ON fr.forwarded_by = a.admin_id
+       WHERE fr.forwarded_to = ? AND fr.recipient_type = ?
+       ORDER BY fr.forward_date DESC`,
+      [departmentName, recipientType]
+    );
+    
+    return { success: true, data: records };
+  } catch (error) {
+    console.error('Error fetching forwarded records:', error);
+    return { success: false, error: 'Failed to fetch forwarded records' };
+  }
+}
+
+// Update forwarded record status
+export async function updateForwardedRecordStatus(forwardId: string, status: string) {
+  try {
+    await pool.query(
+      `UPDATE forwarded_records
+       SET status = ?
+       WHERE forward_id = ?`,
+      [status, forwardId]
+    );
+    
+    return { success: true, message: 'Forwarded record status updated successfully' };
+  } catch (error) {
+    console.error('Error updating forwarded record status:', error);
+    return { success: false, error: 'Failed to update forwarded record status' };
+  }
+}
+
+// Forward record to an employee
+export async function forwardRecordToEmployee(recordData: {
+  record_id: string;
+  file_id: string;
+  forwarded_by: number;
+  forwarded_to: string;
+  recipient_type: string;
+  notes?: string;
+  department_id?: number;
+}) {
+  try {
+    const forwardId = uuidv4();
+    const { record_id, file_id, forwarded_by, forwarded_to, recipient_type, notes, department_id } = recordData;
+    
+    await pool.query(
+      `INSERT INTO forwarded_records
+       (forward_id, record_id, file_id, forwarded_by, forwarded_to,
+        recipient_type, notes, forward_date, status, department_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'pending', ?)`,
+      [forwardId, record_id, file_id, forwarded_by, forwarded_to, recipient_type, notes, department_id]
+    );
+    
+    return { success: true, message: 'Record forwarded successfully' };
+  } catch (error) {
+    console.error('Error forwarding record:', error);
+    return { success: false, error: 'Failed to forward record' };
   }
 }
