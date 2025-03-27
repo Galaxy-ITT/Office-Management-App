@@ -124,6 +124,18 @@ export interface EmployeePerformance {
   }[];
 }
 
+// Define type for dashboard statistics
+export interface DashboardStats {
+  staffCount: number;
+  recentStaffAdded: number;
+  pendingLeaves: number;
+  recentPendingLeaves: number;
+  totalDocuments: number;
+  recentDocuments: number;
+  activityPercentage: number;
+  previousActivityPercentage: number;
+}
+
 export async function fetchBossRecords(): Promise<{ 
   success: boolean; 
   data?: ForwardedBossRecord[]; 
@@ -836,6 +848,143 @@ export async function fetchRejectedLeaves(): Promise<{
     return {
       success: false,
       error: error?.message || "Failed to fetch rejected leaves"
+    };
+  }
+}
+
+export async function fetchDashboardStats(): Promise<{ 
+  success: boolean; 
+  data?: DashboardStats; 
+  error?: string 
+}> {
+  try {
+    // Get active employees count
+    const activeEmployeesQuery = `
+      SELECT COUNT(*) as count FROM employees_table 
+      WHERE status = 'active'
+    `;
+    const [activeEmployeesResult] = await pool.query(activeEmployeesQuery) as [RowDataPacket[], FieldPacket[]];
+    const activeEmployees = activeEmployeesResult[0]?.count || 0;
+    
+    // Get recently added employees (this month)
+    const recentEmployeesQuery = `
+      SELECT COUNT(*) as count FROM employees_table 
+      WHERE created_at >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')
+    `;
+    const [recentEmployeesResult] = await pool.query(recentEmployeesQuery) as [RowDataPacket[], FieldPacket[]];
+    const recentStaffAdded = recentEmployeesResult[0]?.count || 0;
+    
+    // Get pending leaves count
+    const pendingLeavesQuery = `
+      SELECT COUNT(*) as count FROM leave_applications_table 
+      WHERE status = 'pending'
+    `;
+    const [pendingLeavesResult] = await pool.query(pendingLeavesQuery) as [RowDataPacket[], FieldPacket[]];
+    const pendingLeaves = pendingLeavesResult[0]?.count || 0;
+    
+    // Get recent pending leaves (last week)
+    const recentPendingLeavesQuery = `
+      SELECT COUNT(*) as count FROM leave_applications_table 
+      WHERE status = 'pending' 
+      AND application_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK)
+    `;
+    const [recentPendingLeavesResult] = await pool.query(recentPendingLeavesQuery) as [RowDataPacket[], FieldPacket[]];
+    const recentPendingLeaves = recentPendingLeavesResult[0]?.count || 0;
+    
+    // Get total files count
+    const filesQuery = `SELECT COUNT(*) as count FROM files_table`;
+    const [filesResult] = await pool.query(filesQuery) as [RowDataPacket[], FieldPacket[]];
+    const filesCount = filesResult[0]?.count || 0;
+    
+    // Get total records count
+    const recordsQuery = `SELECT COUNT(*) as count FROM records_table`;
+    const [recordsResult] = await pool.query(recordsQuery) as [RowDataPacket[], FieldPacket[]];
+    const recordsCount = recordsResult[0]?.count || 0;
+    
+    // Calculate total documents
+    const totalDocuments = filesCount + recordsCount;
+    
+    // Get documents added this month
+    const recentFilesQuery = `
+      SELECT COUNT(*) as count FROM files_table 
+      WHERE dateCreated >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')
+    `;
+    const [recentFilesResult] = await pool.query(recentFilesQuery) as [RowDataPacket[], FieldPacket[]];
+    const recentFiles = recentFilesResult[0]?.count || 0;
+    
+    const recentRecordsQuery = `
+      SELECT COUNT(*) as count FROM records_table 
+      WHERE date >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')
+    `;
+    const [recentRecordsResult] = await pool.query(recentRecordsQuery) as [RowDataPacket[], FieldPacket[]];
+    const recentRecords = recentRecordsResult[0]?.count || 0;
+    
+    const recentDocuments = recentFiles + recentRecords;
+    
+    // Calculate Activity - this is more complex and depends on your definition of "activity"
+    // Here we'll use a combination of recent leaves, tasks, and employee actions
+    
+    // This month's activity 
+    const currentMonthActivityQuery = `
+      SELECT (
+        (SELECT COUNT(*) FROM leave_applications_table WHERE application_date >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')) +
+        (SELECT COUNT(*) FROM tasks_table WHERE created_at >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')) +
+        (SELECT COUNT(*) FROM records_table WHERE date >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')) +
+        (SELECT COUNT(*) FROM files_table WHERE dateCreated >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'))
+      ) as total_activity
+    `;
+    const [currentActivityResult] = await pool.query(currentMonthActivityQuery) as [RowDataPacket[], FieldPacket[]];
+    const currentMonthActivity = currentActivityResult[0]?.total_activity || 0;
+    
+    // Previous month's activity
+    const previousMonthActivityQuery = `
+      SELECT (
+        (SELECT COUNT(*) FROM leave_applications_table 
+         WHERE application_date >= DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH), '%Y-%m-01')
+         AND application_date < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')) +
+        (SELECT COUNT(*) FROM tasks_table 
+         WHERE created_at >= DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH), '%Y-%m-01')
+         AND created_at < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')) +
+        (SELECT COUNT(*) FROM records_table 
+         WHERE date >= DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH), '%Y-%m-01')
+         AND date < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')) +
+        (SELECT COUNT(*) FROM files_table 
+         WHERE dateCreated >= DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH), '%Y-%m-01')
+         AND dateCreated < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'))
+      ) as total_activity
+    `;
+    const [previousActivityResult] = await pool.query(previousMonthActivityQuery) as [RowDataPacket[], FieldPacket[]];
+    const previousMonthActivity = previousActivityResult[0]?.total_activity || 0;
+    
+    // Calculate activity percentage (normalized to 0-100%)
+    // If there are active employees, base it on per-employee activity
+    const activityNormalizer = activeEmployees > 0 ? activeEmployees : 1;
+    
+    // Calculate percentages based on activity per employee
+    const activityPercentage = Math.min(100, Math.round((currentMonthActivity / activityNormalizer) * 100));
+    const previousActivityPercentage = previousMonthActivity > 0 
+      ? Math.min(100, Math.round((previousMonthActivity / activityNormalizer) * 100))
+      : 0;
+    
+    return {
+      success: true,
+      data: {
+        staffCount: activeEmployees,
+        recentStaffAdded,
+        pendingLeaves,
+        recentPendingLeaves,
+        totalDocuments,
+        recentDocuments,
+        activityPercentage,
+        previousActivityPercentage
+      }
+    };
+    
+  } catch (error: any) {
+    console.error("Error fetching dashboard stats:", error);
+    return {
+      success: false,
+      error: error?.message || "Failed to fetch dashboard statistics"
     };
   }
 }

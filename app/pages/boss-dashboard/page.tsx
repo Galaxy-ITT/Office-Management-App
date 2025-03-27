@@ -56,37 +56,38 @@ export default function BossDashboard() {
   const loadDashboardData = async () => {
     setLoading(true)
     try {
-      // Import the query function from HR components
-      const { fetchDashboardStats, fetchEmployees } = await import('../hr/_components/_queries')
+      // Import the query functions
+      const { fetchDashboardStats } = await import('./components/_queries')
       
-      // Get dashboard stats
+      // Get dashboard stats directly from the database
       const statsResult = await fetchDashboardStats()
       
       if (statsResult.success && statsResult.data) {
-        // Get staff count from employees table
-        const employeesResult = await fetchEmployees()
-        const employeeCount = employeesResult.success ? employeesResult.data?.length || 0 : 0
+        const stats = statsResult.data
+        
+        // Calculate activity change
+        const activityChange = stats.activityPercentage - stats.previousActivityPercentage
         
         setDashboardStats({
           staffCount: {
-            value: employeeCount.toString(),
-            trend: `+${Math.floor(employeeCount * 0.1)} this month`, // Example trend calculation
-            trendUp: true
+            value: stats.staffCount.toString(),
+            trend: `+${stats.recentStaffAdded} this month`,
+            trendUp: stats.recentStaffAdded > 0
           },
           pendingLeaves: {
-            value: statsResult.data.pendingLeaves.toString(),
-            trend: "+3 from last week",
-            trendUp: true
+            value: stats.pendingLeaves.toString(),
+            trend: `+${stats.recentPendingLeaves} from last week`,
+            trendUp: stats.recentPendingLeaves > 0
           },
           documents: {
-            value: "156", // This could come from a file count query
-            trend: "+12 this month",
-            trendUp: true
+            value: stats.totalDocuments.toString(),
+            trend: `+${stats.recentDocuments} this month`,
+            trendUp: stats.recentDocuments > 0
           },
           activity: {
-            value: "85%", // This would come from a performance metric
-            trend: "+4% from last month",
-            trendUp: true
+            value: `${stats.activityPercentage}%`,
+            trend: `${activityChange >= 0 ? '+' : ''}${activityChange}% from last month`,
+            trendUp: activityChange >= 0
           }
         })
       }
