@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useFileSystem, type Record } from "./file-system-context"
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Pencil, Trash2, X, Save, Send, FileText, Calendar, User, Tag, Paperclip } from "lucide-react"
-import { handleFileOperation, handleForwardRecord } from "./file-system-server"
+import { handleFileOperation, handleForwardRecord, fetchDepartments, fetchEmployees } from "./file-system-server"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -49,6 +49,43 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
   // Edit state
   const [editedRecord, setEditedRecord] = useState<Record>({ ...record })
   const [isForwarding, setIsForwarding] = useState(false)
+
+  const [departments, setDepartments] = useState<Array<{id: number, name: string}>>([])
+  const [employees, setEmployees] = useState<Array<{id: string, name: string, position: string, departmentId: number}>>([])
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null)
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false)
+  
+  // Fetch departments and employees when the component mounts
+  useEffect(() => {
+    async function loadOptions() {
+      setIsLoadingOptions(true)
+      try {
+        // Fetch departments
+        const deptResult = await fetchDepartments()
+        if (deptResult.success && deptResult.data) {
+          setDepartments(deptResult.data)
+        }
+        
+        // Fetch employees
+        const empResult = await fetchEmployees()
+        if (empResult.success && empResult.data) {
+          setEmployees(empResult.data)
+        }
+      } catch (error) {
+        console.error("Error loading forward options:", error)
+      } finally {
+        setIsLoadingOptions(false)
+      }
+    }
+    
+    loadOptions()
+  }, [])
+  
+  // Filter employees by selected department
+  const filteredEmployees = selectedDepartmentId 
+    ? employees.filter(emp => emp.departmentId === selectedDepartmentId)
+    : employees
 
   const handleDelete = async () => {
     // Call server component
@@ -97,20 +134,33 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
     setIsForwarding(true)
     
     try {
-      // Determine recipient name based on selection
+      // Determine recipient name and additional data based on selection
       let recipientName = forwardTo
-      if (forwardRecipient !== "other") {
+      let departmentId = null
+      let employeeId = null
+      
+      if (forwardRecipient === "department" && selectedDepartmentId) {
+        const dept = departments.find(d => d.id === selectedDepartmentId)
+        recipientName = dept?.name || "Unknown Department"
+        departmentId = selectedDepartmentId
+      } else if (forwardRecipient === "colleague" && selectedEmployeeId) {
+        const emp = employees.find(e => e.id === selectedEmployeeId)
+        recipientName = emp?.name || "Unknown Employee"
+        employeeId = selectedEmployeeId
+      } else if (forwardRecipient !== "other" && forwardRecipient !== "boss") {
         recipientName = forwardRecipient
       }
       
-      // Call API to forward record
+      // Call API to forward record with additional information
       const result = await handleForwardRecord(
         record.id,
         fileId,
         adminData.admin_id,
         forwardRecipient,
         recipientName,
-        forwardNotes
+        forwardNotes,
+        departmentId ?? undefined,
+        employeeId ?? undefined
       )
       
       if (result.success) {
@@ -133,6 +183,8 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
         setForwardTo("")
         setForwardNotes("")
         setForwardRecipient("boss")
+        setSelectedDepartmentId(null)
+        setSelectedEmployeeId(null)
       } else {
         toast({
           title: "Forwarding Failed",
@@ -427,7 +479,13 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
               <Label htmlFor="forward-recipient">Forward to</Label>
               <Select 
                 value={forwardRecipient}
-                onValueChange={setForwardRecipient}
+                onValueChange={(value) => {
+                  setForwardRecipient(value)
+                  // Reset selections when changing recipient type
+                  setSelectedDepartmentId(null)
+                  setSelectedEmployeeId(null)
+                  setForwardTo("")
+                }}
               >
                 <SelectTrigger id="forward-recipient">
                   <SelectValue placeholder="Select recipient" />
@@ -440,6 +498,50 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
                 </SelectContent>
               </Select>
             </div>
+            
+            {forwardRecipient === "department" && (
+              <div className="space-y-2">
+                <Label htmlFor="department-select">Select Department</Label>
+                <Select 
+                  value={selectedDepartmentId?.toString() || ""}
+                  onValueChange={(value) => setSelectedDepartmentId(Number(value))}
+                  disabled={isLoadingOptions || departments.length === 0}
+                >
+                  <SelectTrigger id="department-select">
+                    <SelectValue placeholder={isLoadingOptions ? "Loading departments..." : "Select department"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id.toString()}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {forwardRecipient === "colleague" && (
+              <div className="space-y-2">
+                <Label htmlFor="colleague-select">Select Colleague</Label>
+                <Select 
+                  value={selectedEmployeeId || ""}
+                  onValueChange={setSelectedEmployeeId}
+                  disabled={isLoadingOptions || employees.length === 0}
+                >
+                  <SelectTrigger id="colleague-select">
+                    <SelectValue placeholder={isLoadingOptions ? "Loading colleagues..." : "Select colleague"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredEmployees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.name} {emp.position ? `(${emp.position})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             
             {forwardRecipient === "other" && (
               <div className="space-y-2">
@@ -471,7 +573,11 @@ export default function RecordDetails({ record, fileId }: RecordDetailsProps) {
             </Button>
             <Button 
               onClick={handleForwardSubmit} 
-              disabled={isForwarding || (forwardRecipient === "other" && !forwardTo)}
+              disabled={isForwarding || 
+                (forwardRecipient === "other" && !forwardTo) ||
+                (forwardRecipient === "department" && !selectedDepartmentId) ||
+                (forwardRecipient === "colleague" && !selectedEmployeeId)
+              }
             >
               {isForwarding ? (
                 <>Processing...</>

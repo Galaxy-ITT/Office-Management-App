@@ -70,13 +70,19 @@ export async function createAllTables() {
         forwarded_to VARCHAR(255) NOT NULL,
         recipient_type VARCHAR(50) NOT NULL,
         notes TEXT,
+        department_id INT,
+        employee_id VARCHAR(36),
         forward_date DATETIME DEFAULT CURRENT_TIMESTAMP,
         status VARCHAR(50) DEFAULT 'Pending',
         FOREIGN KEY (record_id) REFERENCES records_table(id) ON DELETE CASCADE,
         FOREIGN KEY (file_id) REFERENCES files_table(id) ON DELETE CASCADE,
         FOREIGN KEY (forwarded_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        FOREIGN KEY (department_id) REFERENCES departments_table(department_id) ON DELETE SET NULL,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE SET NULL,
         INDEX idx_record_id (record_id),
-        INDEX idx_forwarded_by (forwarded_by)
+        INDEX idx_forwarded_by (forwarded_by),
+        INDEX idx_department_id (department_id),
+        INDEX idx_employee_id (employee_id)
       )
     `)
     console.log("forwarded_records table created successfully")
@@ -406,13 +412,19 @@ export async function table_files() {
         forwarded_to VARCHAR(255) NOT NULL,
         recipient_type VARCHAR(50) NOT NULL,
         notes TEXT,
+        department_id INT,
+        employee_id VARCHAR(36),
         forward_date DATETIME DEFAULT CURRENT_TIMESTAMP,
         status VARCHAR(50) DEFAULT 'Pending',
         FOREIGN KEY (record_id) REFERENCES records_table(id) ON DELETE CASCADE,
         FOREIGN KEY (file_id) REFERENCES files_table(id) ON DELETE CASCADE,
         FOREIGN KEY (forwarded_by) REFERENCES lists_of_admins(admin_id) ON DELETE RESTRICT,
+        FOREIGN KEY (department_id) REFERENCES departments_table(department_id) ON DELETE SET NULL,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE SET NULL,
         INDEX idx_record_id (record_id),
-        INDEX idx_forwarded_by (forwarded_by)
+        INDEX idx_forwarded_by (forwarded_by),
+        INDEX idx_department_id (department_id),
+        INDEX idx_employee_id (employee_id)
       )
     `)
     console.log("forwarded_records table created successfully")

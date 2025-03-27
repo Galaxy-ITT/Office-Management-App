@@ -45,6 +45,8 @@ export interface ForwardedRecord {
   notes?: string;
   forward_date: string;
   status: string;
+  department_id?: number;
+  employee_id?: string;
 }
 
 async function getNextIdentifiers(): Promise<{ fileNumber: string, referenceNumber: string }> {
@@ -337,9 +339,7 @@ export async function handleRecordOperation(
           attachmentSize: recordData.attachmentSize || null,
           attachmentType: recordData.attachmentType || null
         };
-
-        console.log("📝 Record created:", savedRecord);
-        
+ 
         return { 
           success: true,
           data: savedRecord
@@ -458,21 +458,95 @@ export async function fetchRecordsByFileId(fileId: string): Promise<{ success: b
   }
 }
 
+// New function to fetch departments from the database
+export async function fetchDepartments(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    const query = `
+      SELECT department_id, name 
+      FROM departments_table 
+      ORDER BY name ASC
+    `;
+
+    const [departments] = await pool.query(query) as [RowDataPacket[], FieldPacket[]];
+    
+    if (Array.isArray(departments)) {
+      return {
+        success: true,
+        data: departments.map(dept => ({
+          id: dept.department_id,
+          name: dept.name
+        }))
+      };
+    }
+
+    return {
+      success: false,
+      error: "No departments found"
+    };
+  } catch (error: any) {
+    console.error("Error fetching departments:", error);
+    return {
+      success: false,
+      error: error?.message || "Failed to fetch departments"
+    };
+  }
+}
+
+// New function to fetch employees (colleagues)
+export async function fetchEmployees(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    const query = `
+      SELECT employee_id, name, position, department_id
+      FROM employees_table
+      WHERE status = 'active'
+      ORDER BY name ASC
+    `;
+
+    const [employees] = await pool.query(query) as [RowDataPacket[], FieldPacket[]];
+    
+    if (Array.isArray(employees)) {
+      return {
+        success: true,
+        data: employees.map(emp => ({
+          id: emp.employee_id,
+          name: emp.name,
+          position: emp.position,
+          departmentId: emp.department_id
+        }))
+      };
+    }
+
+    return {
+      success: false,
+      error: "No employees found"
+    };
+  } catch (error: any) {
+    console.error("Error fetching employees:", error);
+    return {
+      success: false,
+      error: error?.message || "Failed to fetch employees"
+    };
+  }
+}
+
+// Modify the existing handleForwardRecord function to include department and employee information
 export async function handleForwardRecord(
   recordId: string,
   fileId: string,
   adminId: number,
   recipientType: string,
   recipientName: string,
-  notes?: string
+  notes?: string,
+  departmentId?: number,
+  employeeId?: string
 ): Promise<{ success: boolean; error?: string; data?: ForwardedRecord }> {
   try {
     // Create a new forward record
     const forwardId = uuidv4();
     const forwardQuery = `
       INSERT INTO forwarded_records 
-      (forward_id, record_id, file_id, forwarded_by, forwarded_to, recipient_type, notes, forward_date, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'Pending')
+      (forward_id, record_id, file_id, forwarded_by, forwarded_to, recipient_type, notes, forward_date, status, department_id, employee_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'Pending', ?, ?)
     `;
     
     await pool.query(forwardQuery, [
@@ -482,7 +556,9 @@ export async function handleForwardRecord(
       adminId,
       recipientName,
       recipientType,
-      notes || null
+      notes || null,
+      departmentId || null,
+      employeeId || null
     ]);
     
     // Update the record status to "Forwarded"
@@ -513,7 +589,9 @@ export async function handleForwardRecord(
           recipient_type: forwardedRecord.recipient_type,
           notes: forwardedRecord.notes,
           forward_date: forwardedRecord.forward_date.toISOString(),
-          status: forwardedRecord.status
+          status: forwardedRecord.status,
+          department_id: forwardedRecord.department_id,
+          employee_id: forwardedRecord.employee_id
         }
       };
     }
