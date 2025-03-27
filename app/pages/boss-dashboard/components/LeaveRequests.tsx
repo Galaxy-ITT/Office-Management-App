@@ -254,23 +254,38 @@ export default function LeaveRequests() {
                   </a>
                 </p>
               )}
+              
+              {/* Add boss comment if it exists and status is not pending */}
+              {selectedApplication.status !== 'pending' && selectedApplication.boss_comment && (
+                <div className="mt-4 p-3 bg-muted rounded-md">
+                  <p className="font-medium">Manager's Comment:</p>
+                  <p className="text-sm mt-1">{selectedApplication.boss_comment}</p>
+                </div>
+              )}
+              
               {selectedApplication.status === 'pending' && (
                 <div className="space-y-2">
                   <Label htmlFor="comment">Your Comment</Label>
                   <Textarea
                     id="comment"
+                    placeholder="Add any notes or comments about this leave request"
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="Enter your comment here..."
+                    rows={3}
                   />
                 </div>
               )}
             </div>
           )}
+          
           <DialogFooter>
             {selectedApplication?.status === 'pending' ? (
-              <>
-                <Button variant="outline" onClick={() => setSelectedApplication(null)}>
+              <div className="flex gap-2 w-full sm:justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedApplication(null)}
+                  disabled={processing}
+                >
                   Cancel
                 </Button>
                 <Button 
@@ -278,17 +293,29 @@ export default function LeaveRequests() {
                   onClick={() => handleAction('rejected')}
                   disabled={processing}
                 >
-                  {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Reject
+                  {processing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing
+                    </>
+                  ) : (
+                    'Reject'
+                  )}
                 </Button>
                 <Button 
                   onClick={() => handleAction('approved')}
                   disabled={processing}
                 >
-                  {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Approve
+                  {processing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing
+                    </>
+                  ) : (
+                    'Approve'
+                  )}
                 </Button>
-              </>
+              </div>
             ) : (
               <Button variant="outline" onClick={() => setSelectedApplication(null)}>
                 Close

@@ -91,6 +91,10 @@ export interface LeaveApplication {
   application_date: string;
   evidence_url?: string | null;
   evidence_name?: string | null;
+  boss_comment?: string | null;
+  hod_comment?: string | null;
+  approved_by?: number | null;
+  updated_at?: string | null;
 }
 
 // Define type for employee data
