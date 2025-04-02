@@ -57,9 +57,9 @@ const pages = [
 ]
 
 const quickActions = [
-  { name: 'Review Proposal', icon: FileText },
-  { name: 'Schedule Performance Review', icon: Star },
-  { name: 'Assign New Task', icon: CheckSquare },
+  { name: 'Review Proposal', icon: FileText, action: 'Employee Proposals' },
+  { name: 'Schedule Performance Review', icon: Star, action: 'Performance Reviews' },
+  { name: 'Assign New Task', icon: CheckSquare, action: 'Assigned Tasks' },
 ]
 
 // Define the interface for dashboard stats
@@ -197,7 +197,12 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-3">
                 {quickActions.map((action) => (
-                  <Button key={action.name} variant="outline" className="justify-start">
+                  <Button 
+                    key={action.name} 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={() => setActivePage(action.action)}
+                  >
                     <action.icon className="mr-2 h-4 w-4" />
                     {action.name}
                   </Button>
@@ -238,45 +243,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activities</CardTitle>
-              <CardDescription>Latest activities in your department</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback>
-                          {String.fromCharCode(65 + index % 26)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {["John Doe", "Mary Smith", "Robert Johnson", "Alice Brown", "James Wilson"][index]} 
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {[
-                            "Submitted a new proposal",
-                            "Completed assigned task",
-                            "Updated project status",
-                            "Requested performance review",
-                            "Added new task update"
-                          ][index]}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline">
-                      {["1h ago", "3h ago", "Yesterday", "2 days ago", "3 days ago"][index]}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </>
       )}
     </div>

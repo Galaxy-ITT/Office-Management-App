@@ -434,12 +434,18 @@ export async function forwardRecordToEmployee(recordData: {
     const forwardId = uuidv4();
     const { record_id, file_id, forwarded_by, forwarded_to, recipient_type, notes, department_id } = recordData;
     
+    // Convert forwarded_by to a number and validate it's not NaN
+    const forwardedByValue = Number(forwarded_by);
+    if (isNaN(forwardedByValue)) {
+      return { success: false, error: 'Invalid forwarded_by value' };
+    }
+    
     await pool.query(
       `INSERT INTO forwarded_records
        (forward_id, record_id, file_id, forwarded_by, forwarded_to,
         recipient_type, notes, forward_date, status, department_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'pending', ?)`,
-      [forwardId, record_id, file_id, forwarded_by, forwarded_to, recipient_type, notes, department_id]
+      [forwardId, record_id, file_id, forwardedByValue, forwarded_to, recipient_type, notes || null, department_id || null]
     );
     
     return { success: true, message: 'Record forwarded successfully' };

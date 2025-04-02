@@ -67,7 +67,7 @@ export default function ForwardedRecords() {
         
         const result = await fetchForwardedRecords(userData.department_name);
         if (result.success && result.data) {
-          setRecords(result.data);
+          setRecords(result.data as ForwardedRecord[]);
         } else {
           toast({
             title: "Error",
@@ -75,11 +75,12 @@ export default function ForwardedRecords() {
             variant: "destructive",
           });
         }
-        
         // Load department employees for forwarding options
-        const empResult = await fetchDepartmentEmployees(userData.department_id);
-        if (empResult.success && empResult.data) {
-          setEmployees(empResult.data);
+        if (userData.department_id) {
+          const empResult = await fetchDepartmentEmployees(userData.department_id);
+          if (empResult.success && empResult.data) {
+            setEmployees(empResult.data as Employee[]);
+          }
         }
       } catch (error) {
         console.error("Error loading forwarded records:", error);
@@ -137,10 +138,10 @@ export default function ForwardedRecords() {
   };
 
   const handleForwardRecord = async () => {
-    if (!selectedRecord || !selectedEmployee || !userData?.employee_id) {
+    if (!selectedRecord || !selectedEmployee || !userData?.admin_id) {
       toast({
         title: "Error",
-        description: "Missing required information",
+        description: "Missing required information for forwarding",
         variant: "destructive",
       });
       return;
@@ -152,12 +153,22 @@ export default function ForwardedRecords() {
       const forwardData = {
         record_id: selectedRecord.record_id,
         file_id: selectedRecord.file_id,
-        forwarded_by: Number(userData.employee_id),
+        forwarded_by: Number(userData.admin_id),
         forwarded_to: selectedEmployee,
         recipient_type: "employee",
         notes: forwardNotes,
         department_id: userData.department_id
       };
+      
+      // Validate forwarded_by is a valid number
+      if (isNaN(forwardData.forwarded_by)) {
+        toast({
+          title: "Error",
+          description: "Invalid admin ID. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       const result = await forwardRecordToEmployee(forwardData);
       
@@ -275,7 +286,7 @@ export default function ForwardedRecords() {
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
-                          {record.file_type && (
+                          {record.file_id && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -366,7 +377,7 @@ export default function ForwardedRecords() {
               )}
               
               <div className="flex justify-between pt-4">
-                <Button 
+             {/*   <Button 
                   variant="outline" 
                   onClick={() => {
                     setIsViewDialogOpen(false);
@@ -377,7 +388,8 @@ export default function ForwardedRecords() {
                   }}
                 >
                   Forward to Employee
-                </Button>
+                </Button> 
+                */}
                 
                 <div className="space-x-2">
                   {selectedRecord.status === "pending" && (
