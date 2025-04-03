@@ -15,7 +15,8 @@ import {
   LayoutDashboard,
   BarChart,
   Calendar,
-  CheckSquare
+  CheckSquare,
+  Forward
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ const employeePages = [
   { name: 'Performance', icon: Star },
   { name: 'Leave Applications', icon: ClipboardCheck },
   { name: 'Tasks', icon: CheckSquare },
+  { name: 'Forwarded Records', icon: Forward },
   { name: 'Personal Details', icon: CalendarDays },
 ];
 

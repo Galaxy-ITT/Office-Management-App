@@ -3,7 +3,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { UserContext } from "@/userContext/userContext";
 import EmployeeSidebar from "./Sidebar";
-import { fetchEmployeePerformance, fetchEmployeeLeaves, fetchEmployeeDetails, fetchEmployeeSkills, fetchEmployeeCourses, fetchEmployeeTasks } from "./_queries";
+import { fetchEmployeePerformance, fetchEmployeeLeaves, fetchEmployeeDetails, fetchEmployeeSkills, fetchEmployeeCourses, fetchEmployeeTasks, fetchForwardedRecords } from "./_queries";
 import { useToast } from "@/hooks/use-toast";
 import dynamic from "next/dynamic"
 import EmployeeHeader from "@/components/employee-header"
@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { EmployeeLeaves } from "@/app/pages/employee-profile/_components/Employee-leaves"
 import EmployeePerformance from "@/app/pages/employee-profile/_components/employee-performance"
 import EmployeeTasks from "@/app/pages/employee-profile/_components/employee-tasks"
+import ForwardedRecords from "./ForwardedRecords";
 
 // Dynamic imports for better performance
 const EmployeeDetails = dynamic(() => import("@/app/pages/employee-profile/_components/employee-details"))
@@ -105,6 +106,33 @@ type TaskData = {
   updated_at: string;
 };
 
+// Define type for forwarded record data
+type ForwardedRecordData = {
+  forward_id: string;
+  record_id: string;
+  file_id: string;
+  forwarded_by: number;
+  forwarded_to: string;
+  notes: string;
+  forward_date: string;
+  status: string;
+  forwarder_name: string;
+  uniqueNumber: string;
+  type: string;
+  date: string;
+  from: string;
+  to: string;
+  subject: string;
+  content: string;
+  reference: string;
+  trackingNumber: string;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  fileNumber: string;
+  fileName: string;
+  fileType: string;
+};
+
 export default function EmployeeProfilePage() {
   const { userData } = useContext(UserContext);
   const { toast } = useToast();
@@ -123,6 +151,7 @@ export default function EmployeeProfilePage() {
   const [skills, setSkills] = useState<SkillData[]>([]);
   const [courses, setCourses] = useState<CourseData[]>([]);
   const [tasks, setTasks] = useState<TaskData[]>([]);
+  const [forwardedRecords, setForwardedRecords] = useState<ForwardedRecordData[]>([]);
 
   // Authentication check
   useEffect(() => {
@@ -177,6 +206,12 @@ export default function EmployeeProfilePage() {
         const tasksResult = await fetchEmployeeTasks(userData.employee_id);
         if (tasksResult.success && Array.isArray(tasksResult.data)) {
           setTasks(tasksResult.data as TaskData[]);
+        }
+        
+        // Fetch forwarded records data
+        const forwardedRecordsResult = await fetchForwardedRecords(userData.employee_id);
+        if (forwardedRecordsResult.success && Array.isArray(forwardedRecordsResult.data)) {
+          setForwardedRecords(forwardedRecordsResult.data as ForwardedRecordData[]);
         }
       } catch (error) {
         console.error("Error loading data:", error);
@@ -241,6 +276,13 @@ export default function EmployeeProfilePage() {
     </div>
   );
 
+  // Render forwarded records component
+  const renderForwardedRecords = () => (
+    <div className="space-y-8">
+      <ForwardedRecords />
+    </div>
+  );
+
   return (
     <div className="flex h-screen">
       <EmployeeSidebar activePage={activePage} setActivePage={setActivePage} />
@@ -263,7 +305,8 @@ export default function EmployeeProfilePage() {
                activePage === 'Performance' ? renderPerformance() :
                activePage === 'Leave Applications' ? renderLeaveApplications() :
                activePage === 'Personal Details' ? renderPersonalDetails() :
-               activePage === 'Tasks' ? renderTasks() : null}
+               activePage === 'Tasks' ? renderTasks() :
+               activePage === 'Forwarded Records' ? renderForwardedRecords() : null}
             </>
           )}
         </div>

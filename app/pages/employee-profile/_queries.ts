@@ -327,3 +327,161 @@ export async function fetchEmployeeTasks(employeeId: string) {
     };
   }
 }
+
+export async function fetchForwardedRecords(employeeId: string) {
+  try {
+    // Define interface for database record type
+    interface ForwardedRecordRow extends RowDataPacket {
+      forward_id: string;
+      record_id: string;
+      file_id: string;
+      forwarded_by: number;
+      forwarded_to: string;
+      notes: string | null;
+      forward_date: Date;
+      status: string;
+      forwarder_name: string;
+      uniqueNumber: string;
+      type: string;
+      date: Date;
+      from: string;
+      to: string;
+      subject: string;
+      content: string | null;
+      reference: string | null;
+      trackingNumber: string | null;
+      attachmentUrl: string | null;
+      attachmentName: string | null;
+      fileNumber: string;
+      fileName: string;
+      fileType: string;
+    }
+
+    // Define interface for serialized record with string dates
+    interface SerializedForwardedRecord {
+      forward_id: string;
+      record_id: string;
+      file_id: string;
+      forwarded_by: number;
+      forwarded_to: string;
+      notes: string | null;
+      forward_date: string; // Changed to string for ISO format
+      status: string;
+      forwarder_name: string;
+      uniqueNumber: string;
+      type: string;
+      date: string; // Changed to string for ISO format
+      from: string;
+      to: string;
+      subject: string;
+      content: string | null;
+      reference: string | null;
+      trackingNumber: string | null;
+      attachmentUrl: string | null;
+      attachmentName: string | null;
+      fileNumber: string;
+      fileName: string;
+      fileType: string;
+    }
+
+    // Type assertion for the query result
+    const [records] = await pool.query<ForwardedRecordRow[]>(`
+      SELECT 
+        fr.forward_id, fr.record_id, fr.file_id, fr.forwarded_by, fr.forwarded_to,
+        fr.notes, fr.forward_date, fr.status,
+        adm.name AS forwarder_name,
+        r.uniqueNumber, r.type, r.date, r.from, r.to, r.subject, r.content, 
+        r.reference, r.trackingNumber, r.attachmentUrl, r.attachmentName,
+        f.fileNumber, f.name AS fileName, f.type AS fileType
+      FROM forwarded_records fr
+      JOIN records_table r ON fr.record_id = r.id
+      JOIN files_table f ON fr.file_id = f.id
+      JOIN lists_of_admins adm ON fr.forwarded_by = adm.admin_id
+      WHERE fr.employee_id = ?
+      ORDER BY fr.forward_date DESC
+    `, [employeeId]) as [ForwardedRecordRow[], FieldPacket[]];
+
+    // Convert dates to ISO strings for serialization
+    const serializedRecords: SerializedForwardedRecord[] = records.map(record => {
+      const serializedRecord = { ...record } as unknown as SerializedForwardedRecord;
+      
+      // Convert dates to ISO strings
+      if (record.forward_date instanceof Date) {
+        serializedRecord.forward_date = record.forward_date.toISOString();
+      }
+      if (record.date instanceof Date) {
+        serializedRecord.date = record.date.toISOString();
+      }
+      
+      return serializedRecord;
+    });
+
+    return { success: true, data: serializedRecords };
+  } catch (error) {
+    console.error('Error fetching forwarded records:', error);
+    return { success: false, error: 'Failed to fetch forwarded records' };
+  }
+}
+
+export async function reviewForwardedRecord(reviewData: {
+  forward_id: string;
+  employee_id: string;
+  employee_name: string;
+  review_action: string;
+  review_note?: string;
+}) {
+  try {
+    const { forward_id, employee_id, employee_name, review_action, review_note } = reviewData;
+    
+    if (!forward_id || !employee_id || !employee_name || !review_action) {
+      return { success: false, error: "Missing required fields" };
+    }
+
+    // Get forwarded record details
+    const [forwardedRecords] = await pool.query(
+      "SELECT record_id FROM forwarded_records WHERE forward_id = ?",
+      [forward_id]
+    ) as [RowDataPacket[], FieldPacket[]];
+
+    if (forwardedRecords.length === 0) {
+      return { success: false, error: "Forwarded record not found" };
+    }
+
+    const record_id = forwardedRecords[0].record_id;
+    const review_id = crypto.randomUUID(); // Using Node.js built-in UUID generator
+
+    // Begin transaction
+    await pool.query("START TRANSACTION");
+
+    try {
+      // Update forwarded_records status
+      await pool.query(
+        "UPDATE forwarded_records SET status = ? WHERE forward_id = ?",
+        [review_action, forward_id]
+      );
+
+      // Insert into reviews_records
+      await pool.query(
+        `INSERT INTO reviews_records 
+        (review_id, record_id, forward_id, reviewed_by, review_action, review_note, review_date)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+        [review_id, record_id, forward_id, employee_name, review_action, review_note || null]
+      );
+
+      // Commit transaction
+      await pool.query("COMMIT");
+
+      return {
+        success: true,
+        message: `Record ${review_action.toLowerCase()} successfully`,
+      };
+    } catch (error) {
+      // Rollback on error
+      await pool.query("ROLLBACK");
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error processing record review:', error);
+    return { success: false, error: 'Failed to process record review' };
+  }
+}
