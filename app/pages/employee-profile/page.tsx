@@ -297,6 +297,38 @@ export default function EmployeeProfilePage() {
     </div>
   );
 
+  // Make sure we have a separate function to render just the Finished Tasks section
+  const renderFinishedTasks = () => (
+    <div className="space-y-8">
+      <FinishedTasks 
+        employeeId={userData?.employee_id || ''}
+        refreshTrigger={tasksRefresh}
+      />
+    </div>
+  );
+
+  // Update the content rendering logic to include the Finished Tasks section
+  const renderContent = () => {
+    switch (activePage) {
+      case "Dashboard":
+        return renderDashboard();
+      case "Performance":
+        return renderPerformance();
+      case "Leave Applications":
+        return renderLeaveApplications();
+      case "Tasks":
+        return renderTasks();
+      case "Finished Tasks":
+        return renderFinishedTasks();
+      case "Forwarded Records":
+        return renderForwardedRecords();
+      case "Personal Details":
+        return renderPersonalDetails();
+      default:
+        return renderDashboard();
+    }
+  };
+
   return (
     <div className="flex h-screen">
       <EmployeeSidebar activePage={activePage} setActivePage={setActivePage} />
@@ -314,14 +346,7 @@ export default function EmployeeProfilePage() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <>
-              {activePage === 'Dashboard' ? renderDashboard() :
-               activePage === 'Performance' ? renderPerformance() :
-               activePage === 'Leave Applications' ? renderLeaveApplications() :
-               activePage === 'Personal Details' ? renderPersonalDetails() :
-               activePage === 'Tasks' ? renderTasks() :
-               activePage === 'Forwarded Records' ? renderForwardedRecords() : null}
-            </>
+            renderContent()
           )}
         </div>
       </main>
