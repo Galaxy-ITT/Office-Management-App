@@ -14,6 +14,7 @@ import { EmployeeLeaves } from "@/app/pages/employee-profile/_components/Employe
 import EmployeePerformance from "@/app/pages/employee-profile/_components/employee-performance"
 import EmployeeTasks from "@/app/pages/employee-profile/_components/employee-tasks"
 import ForwardedRecords from "./ForwardedRecords";
+import FinishedTasks from "./_components/finished-tasks";
 
 // Dynamic imports for better performance
 const EmployeeDetails = dynamic(() => import("@/app/pages/employee-profile/_components/employee-details"))
@@ -102,6 +103,8 @@ type TaskData = {
   status: string;
   completion_date: string | null;
   completion_note: string | null;
+  employee_notes: string | null;
+  last_updated_by?: string;
   created_at: string;
   updated_at: string;
 };
@@ -152,6 +155,7 @@ export default function EmployeeProfilePage() {
   const [courses, setCourses] = useState<CourseData[]>([]);
   const [tasks, setTasks] = useState<TaskData[]>([]);
   const [forwardedRecords, setForwardedRecords] = useState<ForwardedRecordData[]>([]);
+  const [tasksRefresh, setTasksRefresh] = useState(0);
 
   // Authentication check
   useEffect(() => {
@@ -229,7 +233,7 @@ export default function EmployeeProfilePage() {
     if (userData?.employee_id) {
       loadData();
     }
-  }, [userData, toast]);
+  }, [userData, toast, tasksRefresh]);
 
   // Render dashboard component 
   const renderDashboard = () => (
@@ -238,7 +242,10 @@ export default function EmployeeProfilePage() {
         {details && <EmployeeDetails employeeDetails={details} />}
         {performance.length > 0 && <EmployeePerformance performanceData={performance} />}
         {leaves.length > 0 && <EmployeeLeaves leaveData={leaves} compact={true} hideApplyButton={true} />}
-        {tasks.length > 0 && <EmployeeTasks taskData={tasks} />}
+        {tasks.length > 0 && <EmployeeTasks 
+          taskData={tasks} 
+          onTaskUpdate={() => setTasksRefresh(prev => prev + 1)}
+        />}
         <EmployeeAttendance 
           employeeName={userData?.name || "Overview"} 
           attendanceData={attendanceData} 
@@ -272,7 +279,14 @@ export default function EmployeeProfilePage() {
   // Add new render function for tasks
   const renderTasks = () => (
     <div className="space-y-8">
-      <EmployeeTasks taskData={tasks} />
+      <EmployeeTasks 
+        taskData={tasks} 
+        onTaskUpdate={() => setTasksRefresh(prev => prev + 1)}
+      />
+      <FinishedTasks 
+        employeeId={userData?.employee_id || ''}
+        refreshTrigger={tasksRefresh}
+      />
     </div>
   );
 

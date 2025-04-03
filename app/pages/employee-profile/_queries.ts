@@ -312,19 +312,27 @@ export async function submitLeaveApplication(leaveData: any) {
 export async function fetchEmployeeTasks(employeeId: string) {
   try {
     const [tasks] = await pool.query(
-      `SELECT * FROM tasks_table 
-       WHERE employee_id = ?
-       ORDER BY due_date ASC`,
+      `SELECT 
+        task_id, title, description, employee_id, assigned_by, 
+        due_date, priority, status, completion_date, completion_note,
+        employee_notes, created_at, updated_at
+      FROM tasks_table 
+      WHERE employee_id = ? 
+      ORDER BY 
+        CASE 
+          WHEN status = 'overdue' THEN 1
+          WHEN status = 'pending' THEN 2
+          WHEN status = 'in progress' THEN 3
+          WHEN status = 'completed' THEN 4
+          ELSE 5
+        END,
+        due_date ASC`,
       [employeeId]
     );
-    
     return { success: true, data: tasks };
   } catch (error) {
-    console.error("Error fetching employee tasks:", error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : String(error) 
-    };
+    console.error('Error fetching employee tasks:', error);
+    return { success: false, error: 'Failed to fetch employee tasks' };
   }
 }
 
@@ -483,5 +491,124 @@ export async function reviewForwardedRecord(reviewData: {
   } catch (error) {
     console.error('Error processing record review:', error);
     return { success: false, error: 'Failed to process record review' };
+  }
+}
+
+export async function fetchFinishedTasks(employeeId: string) {
+  try {
+    const [tasks] = await pool.query(
+      `SELECT 
+        f.finished_id,
+        f.task_id,
+        f.title,
+        f.description,
+        f.employee_id,
+        f.assigned_by,
+        f.due_date,
+        f.priority,
+        f.completion_date,
+        f.completion_note,
+        f.performance_rating,
+        f.admin_remarks,
+        f.created_at,
+        a.name as assigned_by_name
+      FROM finished_tasks_table f
+      LEFT JOIN lists_of_admins a ON f.assigned_by = a.admin_id
+      WHERE f.employee_id = ? 
+      ORDER BY f.completion_date DESC`,
+      [employeeId]
+    );
+    return { success: true, data: tasks };
+  } catch (error) {
+    console.error('Error fetching finished tasks:', error);
+    return { success: false, error: 'Failed to fetch finished tasks' };
+  }
+}
+
+export async function updateTaskStatus(data: {
+  task_id: string;
+  status: string;
+  completion_note?: string;
+  move_to_finished: boolean;
+}) {
+  try {
+    const { task_id, status, completion_note, move_to_finished } = data;
+    
+    // Define task interface to match the database schema
+    interface TaskRow extends RowDataPacket {
+      task_id: string;
+      title: string;
+      description: string;
+      employee_id: string;
+      assigned_by: number;
+      due_date: string;
+      priority: string;
+      status: string;
+      employee_notes: string | null;
+      created_at: string;
+      updated_at: string;
+    }
+    
+    // Start transaction
+    await pool.query("START TRANSACTION");
+    
+    try {
+      // Get task details first with proper typing
+      const [taskRows] = await pool.query<TaskRow[]>(
+        "SELECT * FROM tasks_table WHERE task_id = ?",
+        [task_id]
+      ) as [TaskRow[], FieldPacket[]];
+      
+      if (taskRows.length === 0) {
+        await pool.query("ROLLBACK");
+        return { success: false, error: 'Task not found' };
+      }
+      
+      const task = taskRows[0];
+      
+      // Update the existing task
+      if (move_to_finished && status.toLowerCase() === 'completed') {
+        // Insert into finished_tasks_table
+        const finished_id = crypto.randomUUID();
+        await pool.query(
+          `INSERT INTO finished_tasks_table (
+            finished_id, task_id, title, description, 
+            employee_id, assigned_by, due_date, 
+            priority, completion_date, completion_note
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)`,
+          [
+            finished_id, task.task_id, task.title, task.description,
+            task.employee_id, task.assigned_by, task.due_date,
+            task.priority, completion_note || null
+          ]
+        );
+        
+        // Delete from tasks_table
+        await pool.query("DELETE FROM tasks_table WHERE task_id = ?", [task_id]);
+      } else {
+        // Just update the task status
+        await pool.query(
+          `UPDATE tasks_table 
+           SET status = ?, employee_notes = ?, updated_at = NOW() 
+           WHERE task_id = ?`,
+          [status, completion_note || null, task_id]
+        );
+      }
+      
+      // Commit transaction
+      await pool.query("COMMIT");
+      
+      return { 
+        success: true, 
+        message: move_to_finished ? "Task completed and moved to finished tasks" : "Task status updated successfully" 
+      };
+    } catch (error) {
+      // Rollback on error
+      await pool.query("ROLLBACK");
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error updating task status:', error);
+    return { success: false, error: 'Failed to update task status' };
   }
 }

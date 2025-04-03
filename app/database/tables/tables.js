@@ -204,6 +204,7 @@ export async function createAllTables() {
         status VARCHAR(20) DEFAULT 'pending',
         completion_date TIMESTAMP NULL,
         completion_note TEXT,
+        employee_notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
@@ -214,6 +215,31 @@ export async function createAllTables() {
       )
     `)
     console.log("tasks_table created successfully")
+
+    // Create finished_tasks_table - for completed employee tasks
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS finished_tasks_table (
+        finished_id VARCHAR(36) PRIMARY KEY,
+        task_id VARCHAR(36) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        employee_id VARCHAR(36) NOT NULL,
+        assigned_by INT NOT NULL,
+        due_date DATE NOT NULL,
+        priority VARCHAR(20),
+        completion_date TIMESTAMP NOT NULL,
+        completion_note TEXT,
+        performance_rating INT,
+        admin_remarks TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (employee_id) REFERENCES employees_table(employee_id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_by) REFERENCES lists_of_admins(admin_id) ON DELETE CASCADE,
+        INDEX idx_employee_id (employee_id),
+        INDEX idx_task_id (task_id),
+        INDEX idx_completion_date (completion_date)
+      )
+    `)
+    console.log("finished_tasks_table created successfully")
 
     // Create employee_skills_table
     await pool.query(`
